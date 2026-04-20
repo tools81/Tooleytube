@@ -365,7 +365,7 @@
         // { id: 'UCxxxxxxxxxxxxxxxxxxxxxx', name: 'Example' },
       ],
 
-      maxVideosPerChannel: 15,
+      maxVideosPerChannel: 16,
       cacheMinutes: 60,
     };
   </script>
@@ -818,10 +818,12 @@
         view.innerHTML = `<div class="empty"><h2>Nothing loaded</h2><p>Try again in a moment.</p></div>`;
         return;
       }
+      const videos = state.videos.slice(0, 64);
+      const moreText = state.videos.length > 64 ? ` Showing ${videos.length} of ${state.videos.length} videos.` : '';
       view.innerHTML = `
         <h1 class="view-title">Latest</h1>
-        <p class="view-sub">${state.videos.length} video${state.videos.length===1?'':'s'} from ${p.channels.length} channel${p.channels.length===1?'':'s'}.</p>
-        <div class="grid">${state.videos.map(videoCard).join('')}</div>`;
+        <p class="view-sub">${videos.length} video${videos.length===1?'':'s'} from ${p.channels.length} channel${p.channels.length===1?'':'s'}.${moreText}</p>
+        <div class="grid">${videos.map(videoCard).join('')}</div>`;
       view.addEventListener('click', onCardClick);
     }
 
