@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Tooleytube</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#FBF6EE" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Tooleytube" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --cream: #FBF6EE;
+      --cream-deep: #F2EAD8;
+      --ink: #1B2B4B;
+      --ink-soft: #4A5A7A;
+      --coral: #E85D4A;
+      --mustard: #F4B942;
+      --sage: #7A9B7A;
+      --shadow: 6px 6px 0 var(--ink);
+      --shadow-sm: 3px 3px 0 var(--ink);
+      --border: 2.5px solid var(--ink);
+      --radius: 18px;
+      --radius-lg: 26px;
+      --bg: var(--cream);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      overflow-x: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      font-weight: 500;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+      transition: background-color 0.3s ease;
+    }
+
+    body {
+      background-image:
+        radial-gradient(circle at 15% 10%, rgba(244,185,66,0.08), transparent 40%),
+        radial-gradient(circle at 85% 90%, rgba(232,93,74,0.06), transparent 40%);
+      padding-bottom: calc(96px + env(safe-area-inset-bottom));
+    }
+    body.no-tabs { padding-bottom: 20px; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px 12px;
+      padding-top: calc(20px + env(safe-area-inset-top));
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 44px; height: 44px;
+      background: var(--coral);
+      border: var(--border); border-radius: 12px; box-shadow: var(--shadow-sm);
+      display: grid; place-items: center;
+      color: var(--cream); font-family: 'Fraunces', serif; font-weight: 900; font-size: 24px;
+      transform: rotate(-4deg);
+    }
+    .brand-name { font-family: 'Fraunces', serif; font-weight: 900; font-size: 28px; letter-spacing: -0.02em; }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    #headerActions { display: flex; align-items: center; gap: 10px; }
+
+    .status-pill {
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 8px 14px; background: var(--cream-deep); border: var(--border); border-radius: 999px;
+    }
+    .status-pill.ok { background: var(--sage); color: var(--cream); }
+    .status-pill.err { background: var(--coral); color: var(--cream); }
+
+    .avatar-btn {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: var(--border); box-shadow: var(--shadow-sm); background: var(--mustard);
+      font-size: 28px; line-height: 1; display: grid; place-items: center; cursor: pointer;
+      padding: 0; transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .avatar-btn.c-coral   { background: var(--coral); }
+    .avatar-btn.c-mustard { background: var(--mustard); }
+    .avatar-btn.c-sage    { background: var(--sage); }
+    .avatar-btn.c-cream   { background: var(--cream-deep); }
+    .avatar-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+    .gear-btn {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: var(--border); box-shadow: var(--shadow-sm); background: var(--cream-deep);
+      display: grid; place-items: center; cursor: pointer;
+      padding: 0; transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .gear-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+    .gear-btn svg { width: 22px; height: 22px; color: var(--ink); }
+
+    .timer-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 14px; font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      padding: 8px 14px 8px 12px;
+      background: var(--cream); color: var(--ink);
+      border: var(--border); border-radius: 999px;
+      box-shadow: var(--shadow-sm);
+      line-height: 1;
+    }
+    .timer-pill svg { width: 14px; height: 14px; color: var(--ink); }
+    .timer-pill.warn { background: var(--mustard); }
+    .timer-pill.alert { background: var(--coral); color: var(--cream); }
+    .timer-pill.alert svg { color: var(--cream); }
+    @media (max-width: 500px) {
+      .timer-pill { font-size: 12px; padding: 7px 11px 7px 9px; }
+      .timer-pill svg { width: 12px; height: 12px; }
+    }
+
+    main { padding: 8px 20px 20px; max-width: 1200px; margin: 0 auto; }
+
+    .view-title { font-family: 'Fraunces', serif; font-weight: 900; font-size: 42px; letter-spacing: -0.03em; line-height: 1; margin: 16px 0 6px; }
+    .view-sub { color: var(--ink-soft); font-size: 15px; margin-bottom: 24px; }
+
+    /* Picker */
+    .picker-title {
+      font-family: 'Fraunces', serif; font-weight: 900; font-size: 48px;
+      letter-spacing: -0.03em; line-height: 1; text-align: center; margin: 40px 0 40px;
+    }
+    .picker-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 24px; max-width: 800px; margin: 0 auto;
+    }
+    .picker-card {
+      background: var(--cream); border: var(--border); border-radius: 28px; box-shadow: var(--shadow);
+      padding: 28px 20px 24px; display: flex; flex-direction: column; align-items: center; gap: 14px;
+      cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .picker-card:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 var(--ink); }
+    .picker-avatar {
+      width: 120px; height: 120px; border-radius: 50%;
+      border: var(--border); box-shadow: var(--shadow-sm);
+      display: grid; place-items: center; font-size: 64px; line-height: 1;
+    }
+    .picker-avatar.c-coral { background: var(--coral); }
+    .picker-avatar.c-mustard { background: var(--mustard); }
+    .picker-avatar.c-sage { background: var(--sage); }
+    .picker-avatar.c-cream { background: var(--cream-deep); }
+    .picker-name { font-family: 'Fraunces', serif; font-weight: 900; font-size: 24px; }
+    .picker-sub { font-size: 13px; color: var(--ink-soft); font-weight: 500; }
+    .picker-add { background: var(--cream-deep); border: 2.5px dashed var(--ink); box-shadow: none; }
+    .picker-add .picker-avatar { background: var(--cream); font-family: 'Fraunces', serif; font-weight: 900; }
+
+    /* Grids / cards */
+    .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .card {
+      background: var(--cream); border: var(--border); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow); overflow: hidden; cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      display: flex; flex-direction: column;
+    }
+    .card:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 var(--ink); }
+    .thumb { aspect-ratio: 16/9; background: var(--cream-deep); position: relative; border-bottom: var(--border); overflow: hidden; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+    .card-title {
+      font-weight: 700; font-size: 16px; line-height: 1.3; color: var(--ink);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .card-meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); font-weight: 500; }
+    .card-channel { font-weight: 700; color: var(--coral); }
+
+    .channel-card {
+      background: var(--mustard); border: var(--border); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow); padding: 22px; cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .channel-card:nth-child(3n+2) { background: var(--sage); color: var(--cream); }
+    .channel-card:nth-child(3n+3) { background: var(--coral); color: var(--cream); }
+    .channel-card:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 var(--ink); }
+    .channel-avatar {
+      width: 60px; height: 60px; border-radius: 14px; border: var(--border);
+      background: var(--cream); flex-shrink: 0; overflow: hidden;
+      display: grid; place-items: center;
+      font-family: 'Fraunces', serif; font-weight: 900; font-size: 28px; color: var(--ink);
+    }
+    .channel-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .channel-info h3 { font-family: 'Fraunces', serif; font-weight: 900; font-size: 22px; line-height: 1.1; margin-bottom: 4px; }
+    .channel-info p { font-size: 13px; font-weight: 600; opacity: 0.75; }
+
+    /* Tabbar */
+    .tabbar {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--ink); border: var(--border); border-radius: 999px; padding: 6px;
+      display: flex; gap: 4px; box-shadow: var(--shadow); z-index: 100;
+      margin-bottom: env(safe-area-inset-bottom);
+    }
+    .tab {
+      background: transparent; border: none; color: var(--cream);
+      font-family: inherit; font-weight: 700; font-size: 15px;
+      padding: 14px 28px; border-radius: 999px; cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tab.active { background: var(--mustard); color: var(--ink); }
+    .tab svg { width: 18px; height: 18px; }
+    .tabbar.hidden { display: none; }
+
+    /* Empty / error / skeleton */
+    .skeleton { background: var(--cream-deep); border: var(--border); border-radius: var(--radius-lg); aspect-ratio: 16/10; position: relative; overflow: hidden; }
+    .skeleton::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+    .empty, .error {
+      text-align: center; padding: 60px 20px;
+      background: var(--cream-deep); border: var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow);
+    }
+    .empty h2, .error h2 { font-family: 'Fraunces', serif; font-weight: 900; font-size: 28px; margin-bottom: 8px; }
+    .empty p, .error p { margin-bottom: 14px; }
+    .error { background: #FDE4E0; }
+    .empty code, .error code { background: var(--ink); color: var(--cream); padding: 2px 8px; border-radius: 6px; font-size: 13px; font-family: ui-monospace, monospace; }
+
+    /* Player */
+    .player {
+      position: fixed; inset: 0; background: rgba(27, 43, 75, 0.92); backdrop-filter: blur(8px);
+      display: none; align-items: center; justify-content: center; z-index: 200;
+      padding: 20px; padding-top: calc(20px + env(safe-area-inset-top));
+    }
+    .player.open { display: flex; }
+    .player-inner {
+      width: 100%; max-width: 1100px; background: var(--ink);
+      border: var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow);
+      overflow: hidden; position: relative;
+    }
+    .player-close {
+      position: absolute; top: 14px; right: 14px; z-index: 2;
+      width: 48px; height: 48px; border-radius: 50%; border: var(--border);
+      background: var(--cream); color: var(--ink); font-size: 24px; font-weight: 700;
+      cursor: pointer; box-shadow: var(--shadow-sm); display: grid; place-items: center;
+    }
+    .player iframe { width: 100%; aspect-ratio: 16/9; border: 0; display: block; }
+    .player-title { padding: 18px 20px 20px; color: var(--cream); font-family: 'Fraunces', serif; font-weight: 700; font-size: 20px; line-height: 1.3; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--cream); border: var(--border); border-radius: 999px;
+      padding: 10px 18px 10px 14px; font-family: inherit; font-weight: 700; font-size: 14px;
+      color: var(--ink); box-shadow: var(--shadow-sm); cursor: pointer; margin-bottom: 16px;
+    }
+    .back-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+    /* Settings */
+    .settings-section { margin-bottom: 32px; }
+    .settings-section h2 { font-family: 'Fraunces', serif; font-weight: 900; font-size: 22px; margin-bottom: 12px; letter-spacing: -0.02em; }
+    .list { display: flex; flex-direction: column; gap: 12px; }
+
+    .row {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--cream); border: var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow-sm); padding: 14px 16px;
+    }
+    .row-avatar {
+      width: 44px; height: 44px; border-radius: 50%; border: var(--border);
+      display: grid; place-items: center; font-size: 24px; flex-shrink: 0; background: var(--mustard);
+    }
+    .row-avatar.c-coral { background: var(--coral); }
+    .row-avatar.c-sage { background: var(--sage); color: var(--cream); }
+    .row-avatar.c-mustard { background: var(--mustard); }
+    .row-avatar.c-cream { background: var(--cream-deep); }
+    .row-main { flex: 1; min-width: 0; }
+    .row-title { font-weight: 700; font-size: 16px; }
+    .row-sub { font-size: 13px; color: var(--ink-soft); word-break: break-all; }
+    .row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .btn {
+      background: var(--mustard); border: var(--border); border-radius: 999px;
+      padding: 10px 18px; font-family: inherit; font-weight: 700; font-size: 14px;
+      color: var(--ink); box-shadow: var(--shadow-sm); cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+    .btn.coral { background: var(--coral); color: var(--cream); }
+    .btn.sage  { background: var(--sage);  color: var(--cream); }
+    .btn.cream { background: var(--cream); }
+    .btn.danger { background: #D64545; color: var(--cream); }
+    .btn.small { padding: 7px 12px; font-size: 13px; }
+    .btn.full { width: 100%; justify-content: center; padding: 14px; }
+    .btn.add-dashed { background: var(--cream); border-style: dashed; box-shadow: none; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .field label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+    .text-input {
+      font-family: inherit; font-size: 16px; padding: 12px 14px;
+      background: var(--cream); border: var(--border); border-radius: 12px; color: var(--ink);
+      width: 100%;
+    }
+    .text-input:focus { outline: none; box-shadow: var(--shadow-sm); }
+
+    .emoji-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .emoji-opt {
+      width: 46px; height: 46px; border-radius: 12px; border: var(--border);
+      background: var(--cream); font-size: 26px; cursor: pointer;
+      display: grid; place-items: center; padding: 0;
+    }
+    .emoji-opt.selected { background: var(--mustard); box-shadow: var(--shadow-sm); }
+
+    .color-row { display: flex; gap: 10px; margin-top: 8px; }
+    .color-opt { width: 44px; height: 44px; border-radius: 50%; border: var(--border); cursor: pointer; }
+    .color-opt.selected { box-shadow: var(--shadow-sm); transform: scale(1.05); }
+    .color-opt.c-coral { background: var(--coral); }
+    .color-opt.c-mustard { background: var(--mustard); }
+    .color-opt.c-sage { background: var(--sage); }
+    .color-opt.c-cream { background: var(--cream-deep); }
+
+    /* Modals */
+    .modal {
+      position: fixed; inset: 0; background: rgba(27, 43, 75, 0.85); backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center; z-index: 300; padding: 20px;
+    }
+    .modal.open { display: flex; }
+    .modal-content {
+      background: var(--cream); border: var(--border); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow); padding: 28px; width: 100%; max-width: 440px;
+    }
+    .modal-title { font-family: 'Fraunces', serif; font-weight: 900; font-size: 26px; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .modal-sub { color: var(--ink-soft); font-size: 14px; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    .shake { animation: shake 0.35s; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); } 40% { transform: translateX(8px); }
+      60% { transform: translateX(-4px); } 80% { transform: translateX(4px); }
+    }
+
+    @media (max-width: 500px) {
+      .view-title { font-size: 34px; }
+      .picker-title { font-size: 36px; margin: 24px 0 24px; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+      .tab { padding: 12px 20px; font-size: 14px; }
+      .card-title { font-size: 14px; }
+      .picker-avatar { width: 96px; height: 96px; font-size: 52px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================================================================== -->
+  <!-- CONFIG                                                              -->
+  <!-- Set your API key here. Profiles and channels are managed IN-APP     -->
+  <!-- via Settings and stored in localStorage on this iPad.               -->
+  <!-- ================================================================== -->
+  <script>
+    const CONFIG = {
+      apiKey: 'AIzaSyByKnIifO9NKj8mDUZjUVuKEe3VsQpZj-A',
+
+      // Optional: starter channels added to the very first profile.
+      // After first launch, edit channels inside the app.
+      defaultChannels: [
+        // { id: 'UCxxxxxxxxxxxxxxxxxxxxxx', name: 'Example' },
+      ],
+
+      maxVideosPerChannel: 15,
+      cacheMinutes: 60,
+    };
+  </script>
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">T</div>
+      <div class="brand-name">Tooleytube</div>
+    </div>
+    <div class="header-right">
+      <div class="timer-pill" id="timerPill" title="Time since app opened">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+        <span id="timerText">00:00</span>
+      </div>
+      <div id="headerActions"></div>
+    </div>
+  </header>
+
+  <main><div id="view"></div></main>
+
+  <nav class="tabbar hidden" id="tabbar">
+    <button class="tab active" data-view="latest">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Latest
+    </button>
+    <button class="tab" data-view="channels">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 9h4M7 13h6"/></svg>
+      Channels
+    </button>
+  </nav>
+
+  <!-- Player -->
+  <div class="player" id="player" role="dialog" aria-modal="true">
+    <div class="player-inner">
+      <button class="player-close" id="playerClose" aria-label="Close">×</button>
+      <div id="playerFrame"></div>
+      <div class="player-title" id="playerTitle"></div>
+    </div>
+  </div>
+
+  <!-- Parent gate -->
+  <div class="modal" id="gateModal">
+    <div class="modal-content">
+      <div class="modal-title">Parents only</div>
+      <div class="modal-sub">Solve this to continue.</div>
+      <div class="field">
+        <label id="gateQuestion">…</label>
+        <input type="number" inputmode="numeric" class="text-input" id="gateAnswer" autocomplete="off" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn cream" id="gateCancel">Cancel</button>
+        <button class="btn coral" id="gateSubmit">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm -->
+  <div class="modal" id="confirmModal">
+    <div class="modal-content">
+      <div class="modal-title" id="confirmTitle">Are you sure?</div>
+      <div class="modal-sub" id="confirmSub"></div>
+      <div class="modal-actions">
+        <button class="btn cream" id="confirmCancel">Cancel</button>
+        <button class="btn danger" id="confirmOk">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =================================================================
+    //  TOOLEYTUBE — profiles + curated YouTube
+    // =================================================================
+
+    const API_BASE = 'https://www.googleapis.com/youtube/v3';
+    const STORE_KEY = 'tooleytube:store:v2';
+    const CACHE_PREFIX = 'tooleytube:cache:v2:';
+
+    const DEFAULT_WARN_MIN = 20;
+    const DEFAULT_ALERT_MIN = 30;
+
+    const AVATAR_EMOJIS = ['🦄','🦖','🐶','🐱','🐸','🐼','🦊','🐯','🦁','🐻','🐨','🐰','🐲','🐙','🦋','🌟','⚡','🌈','🚀','🎨','⚽','🎸','🦕','🐢'];
+    const AVATAR_COLORS = ['c-coral','c-mustard','c-sage','c-cream'];
+
+    // Background palette. Keys are stored on profiles; hex is applied at runtime.
+    // Colors chosen to keep --ink text readable at ~AA contrast.
+    const BACKGROUND_OPTIONS = [
+      { key: 'cream',    hex: '#FBF6EE', label: 'Cream' },
+      { key: 'peach',    hex: '#FCE6D4', label: 'Peach' },
+      { key: 'blush',    hex: '#FCE1E7', label: 'Blush' },
+      { key: 'mint',     hex: '#DCF2E4', label: 'Mint' },
+      { key: 'sky',      hex: '#DCEAF9', label: 'Sky' },
+      { key: 'lavender', hex: '#E8E2F5', label: 'Lavender' },
+    ];
+    const DEFAULT_BG_KEY = 'cream';
+    const hexForBgKey = (key) => (BACKGROUND_OPTIONS.find(o => o.key === key) || BACKGROUND_OPTIONS[0]).hex;
+
+    // ---------- Store ----------
+    const newProfileId = () => 'prof_' + Math.random().toString(36).slice(2, 10);
+
+    function loadStore() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch {}
+      // First launch: seed one profile with any CONFIG defaults
+      return {
+        profiles: [{
+          id: newProfileId(),
+          name: 'Default',
+          emoji: '🦄',
+          color: 'c-coral',
+          channels: (CONFIG.defaultChannels || []).map(c => ({ ...c })),
+          warnMinutes: DEFAULT_WARN_MIN,
+          alertMinutes: DEFAULT_ALERT_MIN,
+          background: DEFAULT_BG_KEY,
+        }],
+        activeProfileId: null,
+      };
+    }
+
+    function saveStore() {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch {}
+    }
+
+    let store = loadStore();
+    if (!store.activeProfileId && store.profiles.length) {
+      store.activeProfileId = store.profiles[0].id;
+    }
+
+    // ---------- State ----------
+    const state = {
+      currentView: 'picker',
+      editingProfileId: null,
+      currentChannel: null,
+      videos: [],
+      channelMeta: {},
+      status: 'loading',
+      lastLoadedProfileId: null,
+    };
+
+    const $ = (sel) => document.querySelector(sel);
+    const view = $('#view');
+    const headerActions = $('#headerActions');
+    const tabbar = $('#tabbar');
+
+    const activeProfile = () => store.profiles.find(p => p.id === store.activeProfileId);
+
+    const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    const fmtRelative = (iso) => {
+      const d = (Date.now() - new Date(iso)) / 1000;
+      if (d < 60) return 'just now';
+      if (d < 3600) return `${Math.floor(d/60)}m ago`;
+      if (d < 86400) return `${Math.floor(d/3600)}h ago`;
+      if (d < 86400*7) return `${Math.floor(d/86400)}d ago`;
+      if (d < 86400*30) return `${Math.floor(d/86400/7)}w ago`;
+      return `${Math.floor(d/86400/30)}mo ago`;
+    };
+
+    const uploadsPlaylistFor = (channelId) => 'UU' + channelId.slice(2);
+
+    function setStatus(text, cls = '') {
+      state.status = text;
+      const el = document.querySelector('#headerActions .status-pill');
+      if (el) { el.textContent = text; el.className = 'status-pill ' + cls; }
+    }
+
+    // ---------- Header ----------
+    function renderHeader() {
+      const p = activeProfile();
+      if (state.currentView === 'picker') {
+        headerActions.innerHTML = `
+          <button class="gear-btn" id="hdrSettings" aria-label="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>`;
+        $('#hdrSettings').addEventListener('click', openSettingsGated);
+      } else if (state.currentView === 'settings' || state.currentView === 'profileEditor') {
+        headerActions.innerHTML = `<div class="status-pill">settings</div>`;
+      } else {
+        headerActions.innerHTML = `
+          <div class="status-pill">${state.status}</div>
+          <button class="avatar-btn ${p ? p.color : ''}" id="hdrAvatar" aria-label="Switch profile">${p ? p.emoji : '?'}</button>`;
+        $('#hdrAvatar').addEventListener('click', () => goTo('picker'));
+      }
+      applyProfileBackground();
+      if (typeof refreshTimerDisplay === 'function') refreshTimerDisplay();
+    }
+
+    function applyProfileBackground() {
+      const p = activeProfile();
+      const hex = hexForBgKey(p?.background ?? DEFAULT_BG_KEY);
+      document.documentElement.style.setProperty('--bg', hex);
+    }
+
+    // ---------- Tabbar ----------
+    function renderTabbar() {
+      const showTabs = state.currentView === 'latest' || state.currentView === 'channels';
+      tabbar.classList.toggle('hidden', !showTabs);
+      document.body.classList.toggle('no-tabs', !showTabs);
+      tabbar.querySelectorAll('.tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.view === state.currentView);
+      });
+    }
+
+    tabbar.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.currentChannel = null;
+        goTo(btn.dataset.view);
+      });
+    });
+
+    // ---------- Nav ----------
+    function goTo(v, extra = {}) {
+      state.currentView = v;
+      Object.assign(state, extra);
+      if (v === 'picker') state.currentChannel = null;
+      renderHeader();
+      renderTabbar();
+      render();
+      window.scrollTo(0, 0);
+      // If entering a content view, maybe load videos
+      if ((v === 'latest' || v === 'channels') && store.activeProfileId !== state.lastLoadedProfileId) {
+        state.lastLoadedProfileId = store.activeProfileId;
+        loadActive();
+      }
+    }
+
+    // ---------- API ----------
+    async function fetchChannelVideos(channelId) {
+      const url = `${API_BASE}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistFor(channelId)}&maxResults=${CONFIG.maxVideosPerChannel}&key=${CONFIG.apiKey}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || res.statusText);
+      }
+      const data = await res.json();
+      return (data.items || []).map(it => ({
+        id: it.contentDetails.videoId,
+        title: it.snippet.title,
+        thumb: it.snippet.thumbnails?.medium?.url || it.snippet.thumbnails?.default?.url,
+        publishedAt: it.contentDetails.videoPublishedAt || it.snippet.publishedAt,
+        channelId: it.snippet.channelId,
+        channelTitle: it.snippet.channelTitle,
+      }));
+    }
+
+    async function fetchChannelMeta(channelIds) {
+      if (!channelIds.length) return {};
+      const url = `${API_BASE}/channels?part=snippet&id=${channelIds.join(',')}&key=${CONFIG.apiKey}`;
+      const res = await fetch(url);
+      if (!res.ok) return {};
+      const data = await res.json();
+      const out = {};
+      for (const c of (data.items || [])) {
+        out[c.id] = {
+          title: c.snippet.title,
+          thumb: c.snippet.thumbnails?.default?.url,
+        };
+      }
+      return out;
+    }
+
+    async function resolveChannelFromInput(input) {
+      const raw = input.trim();
+      if (!raw) throw new Error('Enter a URL, @handle, or channel ID.');
+
+      // 1. Any UC... string anywhere in the input
+      const ucMatch = raw.match(/UC[\w-]{22}/);
+      if (ucMatch) {
+        const meta = await fetchChannelMeta([ucMatch[0]]);
+        const m = meta[ucMatch[0]];
+        if (!m) throw new Error("Channel ID didn't resolve.");
+        return { id: ucMatch[0], name: m.title };
+      }
+
+      // 2. @handle (with or without URL wrapper)
+      let handle = null;
+      const handleMatch = raw.match(/@([\w.-]+)/);
+      if (handleMatch) handle = '@' + handleMatch[1];
+      else if (/^[\w.-]+$/.test(raw)) handle = '@' + raw;
+
+      if (handle) {
+        const url = `${API_BASE}/channels?part=snippet&forHandle=${encodeURIComponent(handle)}&key=${CONFIG.apiKey}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Handle lookup failed.');
+        const data = await res.json();
+        const c = data.items?.[0];
+        if (!c) throw new Error(`No channel for ${handle}.`);
+        return { id: c.id, name: c.snippet.title };
+      }
+
+      throw new Error("Couldn't parse that. Try a youtube.com URL, @handle, or UC... ID.");
+    }
+
+    // ---------- Cache ----------
+    function loadCacheFor(profileId) {
+      try {
+        const raw = localStorage.getItem(CACHE_PREFIX + profileId);
+        if (!raw) return null;
+        const { ts, data } = JSON.parse(raw);
+        if ((Date.now() - ts) / 60000 > CONFIG.cacheMinutes) return null;
+        return data;
+      } catch { return null; }
+    }
+    function saveCacheFor(profileId, data) {
+      try { localStorage.setItem(CACHE_PREFIX + profileId, JSON.stringify({ ts: Date.now(), data })); } catch {}
+    }
+    function clearCacheFor(profileId) {
+      try { localStorage.removeItem(CACHE_PREFIX + profileId); } catch {}
+    }
+
+    // ---------- Load ----------
+    async function loadActive() {
+      const p = activeProfile();
+      if (!p) return;
+
+      if (!CONFIG.apiKey || CONFIG.apiKey.startsWith('PASTE_')) {
+        renderError('No API key set', 'Open <code>index.html</code> and paste your YouTube Data API key into <code>CONFIG.apiKey</code>.');
+        setStatus('no key', 'err');
+        return;
+      }
+
+      if (!p.channels.length) {
+        state.videos = [];
+        state.channelMeta = {};
+        setStatus('empty');
+        render();
+        return;
+      }
+
+      const cached = loadCacheFor(p.id);
+      if (cached) {
+        state.videos = cached.videos;
+        state.channelMeta = cached.channelMeta;
+        setStatus('cached', 'ok');
+        render();
+        return;
+      }
+
+      setStatus('fetching…');
+      renderSkeleton();
+
+      try {
+        const ids = p.channels.map(c => c.id);
+        const [meta, ...perChannel] = await Promise.all([
+          fetchChannelMeta(ids),
+          ...ids.map(id => fetchChannelVideos(id).catch(e => { console.warn(id, e); return []; })),
+        ]);
+        state.channelMeta = meta;
+        state.videos = perChannel.flat().sort((a,b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+        saveCacheFor(p.id, { videos: state.videos, channelMeta: state.channelMeta });
+        setStatus('fresh', 'ok');
+        render();
+      } catch (err) {
+        console.error(err);
+        renderError('Something went wrong', esc(err.message));
+        setStatus('error', 'err');
+      }
+    }
+
+    // ---------- Render dispatch ----------
+    function render() {
+      switch (state.currentView) {
+        case 'picker':        return renderPicker();
+        case 'latest':        return renderLatest();
+        case 'channels':      return state.currentChannel ? renderChannelDetail() : renderChannels();
+        case 'settings':      return renderSettings();
+        case 'profileEditor': return renderProfileEditor();
+      }
+    }
+
+    // ---------- Views ----------
+    function renderPicker() {
+      const cards = store.profiles.map(p => `
+        <div class="picker-card" data-profile="${p.id}">
+          <div class="picker-avatar ${p.color}">${p.emoji}</div>
+          <div class="picker-name">${esc(p.name)}</div>
+          <div class="picker-sub">${p.channels.length} channel${p.channels.length === 1 ? '' : 's'}</div>
+        </div>`).join('');
+      view.innerHTML = `
+        <div class="picker-title">Who's watching?</div>
+        <div class="picker-grid">
+          ${cards}
+          <div class="picker-card picker-add" id="pickAdd">
+            <div class="picker-avatar">+</div>
+            <div class="picker-name">Add</div>
+            <div class="picker-sub">&nbsp;</div>
+          </div>
+        </div>`;
+      view.querySelectorAll('[data-profile]').forEach(el => {
+        el.addEventListener('click', () => {
+          if (store.activeProfileId !== el.dataset.profile) {
+            store.activeProfileId = el.dataset.profile;
+            saveStore();
+            state.lastLoadedProfileId = null; // force reload for new profile
+          }
+          goTo('latest');
+        });
+      });
+      $('#pickAdd').addEventListener('click', () => {
+        openParentGate(() => {
+          const id = newProfileId();
+          store.profiles.push({ id, name: 'New profile', emoji: '🦄', color: 'c-coral', channels: [], warnMinutes: DEFAULT_WARN_MIN, alertMinutes: DEFAULT_ALERT_MIN, background: DEFAULT_BG_KEY });
+          saveStore();
+          goTo('profileEditor', { editingProfileId: id });
+        });
+      });
+    }
+
+    function renderSkeleton() {
+      view.innerHTML = `
+        <h1 class="view-title">Latest</h1>
+        <p class="view-sub">Loading videos…</p>
+        <div class="grid">${Array(8).fill('<div class="skeleton"></div>').join('')}</div>`;
+    }
+
+    function renderError(title, msg) {
+      view.innerHTML = `<div class="error"><h2>${esc(title)}</h2><p>${msg}</p></div>`;
+    }
+
+    function videoCard(v) {
+      return `
+        <div class="card" data-video="${v.id}" data-title="${esc(v.title)}">
+          <div class="thumb"><img src="${v.thumb}" alt="" loading="lazy"></div>
+          <div class="card-body">
+            <div class="card-title">${esc(v.title)}</div>
+            <div class="card-meta">
+              <span class="card-channel">${esc(v.channelTitle)}</span>
+              <span>·</span><span>${fmtRelative(v.publishedAt)}</span>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function renderLatest() {
+      const p = activeProfile();
+      if (!p.channels.length) {
+        view.innerHTML = `<div class="empty">
+          <h2>No channels yet</h2>
+          <p>Add channels for <strong>${esc(p.name)}</strong> to start watching.</p>
+          <button class="btn coral" id="goSettings">Open settings</button>
+        </div>`;
+        $('#goSettings').addEventListener('click', openSettingsGated);
+        return;
+      }
+      if (!state.videos.length) {
+        view.innerHTML = `<div class="empty"><h2>Nothing loaded</h2><p>Try again in a moment.</p></div>`;
+        return;
+      }
+      view.innerHTML = `
+        <h1 class="view-title">Latest</h1>
+        <p class="view-sub">${state.videos.length} video${state.videos.length===1?'':'s'} from ${p.channels.length} channel${p.channels.length===1?'':'s'}.</p>
+        <div class="grid">${state.videos.map(videoCard).join('')}</div>`;
+      view.addEventListener('click', onCardClick);
+    }
+
+    function renderChannels() {
+      const p = activeProfile();
+      if (!p.channels.length) {
+        view.innerHTML = `<div class="empty">
+          <h2>No channels</h2>
+          <p>Add channels for <strong>${esc(p.name)}</strong> in settings.</p>
+          <button class="btn coral" id="goSettings">Open settings</button>
+        </div>`;
+        $('#goSettings').addEventListener('click', openSettingsGated);
+        return;
+      }
+      view.innerHTML = `
+        <h1 class="view-title">Channels</h1>
+        <p class="view-sub">Pick a channel.</p>
+        <div class="grid">
+          ${p.channels.map(c => {
+            const meta = state.channelMeta[c.id] || {};
+            const name = meta.title || c.name || 'Channel';
+            const initial = name.charAt(0).toUpperCase();
+            const count = state.videos.filter(v => v.channelId === c.id).length;
+            return `
+              <div class="channel-card" data-channel="${c.id}">
+                <div class="channel-avatar">
+                  ${meta.thumb ? `<img src="${meta.thumb}" alt="">` : initial}
+                </div>
+                <div class="channel-info">
+                  <h3>${esc(name)}</h3>
+                  <p>${count} recent video${count === 1 ? '' : 's'}</p>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>`;
+      view.addEventListener('click', onCardClick);
+    }
+
+    function renderChannelDetail() {
+      const id = state.currentChannel;
+      const meta = state.channelMeta[id] || {};
+      const p = activeProfile();
+      const name = meta.title || p.channels.find(c => c.id === id)?.name || 'Channel';
+      const vids = state.videos.filter(v => v.channelId === id);
+      view.innerHTML = `
+        <button class="back-btn" id="backBtn">← All channels</button>
+        <h1 class="view-title">${esc(name)}</h1>
+        <p class="view-sub">${vids.length} recent video${vids.length === 1 ? '' : 's'}.</p>
+        <div class="grid">${vids.map(videoCard).join('')}</div>`;
+      view.addEventListener('click', onCardClick);
+      $('#backBtn').addEventListener('click', () => { state.currentChannel = null; render(); });
+    }
+
+    function renderSettings() {
+      const rows = store.profiles.map(p => `
+        <div class="row">
+          <div class="row-avatar ${p.color}">${p.emoji}</div>
+          <div class="row-main">
+            <div class="row-title">${esc(p.name)}</div>
+            <div class="row-sub">${p.channels.length} channel${p.channels.length===1?'':'s'}</div>
+          </div>
+          <div class="row-actions">
+            <button class="btn small" data-edit="${p.id}">Edit</button>
+          </div>
+        </div>`).join('');
+
+      view.innerHTML = `
+        <button class="back-btn" id="backBtn">← Back</button>
+        <h1 class="view-title">Settings</h1>
+
+        <div class="settings-section">
+          <h2>Profiles</h2>
+          <div class="list">${rows}</div>
+          <div style="margin-top: 14px;">
+            <button class="btn add-dashed full" id="addProfile">+ Add a profile</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h2>Cache</h2>
+          <p class="view-sub" style="margin-bottom:10px;">Videos cache for ${CONFIG.cacheMinutes} min. Clear to force refresh.</p>
+          <button class="btn cream" id="clearAllCache">Clear all caches</button>
+        </div>
+
+        <div class="settings-section">
+          <h2>About</h2>
+          <p class="view-sub">Profiles are stored on this device. API key lives in <code>index.html</code>.</p>
+        </div>`;
+
+      $('#backBtn').addEventListener('click', () => goTo(store.profiles.length > 1 ? 'picker' : 'latest'));
+      view.querySelectorAll('[data-edit]').forEach(b =>
+        b.addEventListener('click', () => goTo('profileEditor', { editingProfileId: b.dataset.edit }))
+      );
+      $('#addProfile').addEventListener('click', () => {
+        const id = newProfileId();
+        store.profiles.push({ id, name: 'New profile', emoji: '🦄', color: 'c-coral', channels: [], warnMinutes: DEFAULT_WARN_MIN, alertMinutes: DEFAULT_ALERT_MIN, background: DEFAULT_BG_KEY });
+        saveStore();
+        goTo('profileEditor', { editingProfileId: id });
+      });
+      $('#clearAllCache').addEventListener('click', () => {
+        store.profiles.forEach(p => clearCacheFor(p.id));
+        state.lastLoadedProfileId = null;
+        alert('Caches cleared.');
+      });
+    }
+
+    function renderProfileEditor() {
+      const p = store.profiles.find(x => x.id === state.editingProfileId);
+      if (!p) return goTo('settings');
+
+      const emojis = AVATAR_EMOJIS.map(e =>
+        `<button class="emoji-opt ${e === p.emoji ? 'selected' : ''}" data-emoji="${e}">${e}</button>`
+      ).join('');
+      const colors = AVATAR_COLORS.map(c =>
+        `<button class="color-opt ${c} ${c === p.color ? 'selected' : ''}" data-color="${c}" aria-label="${c}"></button>`
+      ).join('');
+      const currentBg = p.background ?? DEFAULT_BG_KEY;
+      const bgSwatches = BACKGROUND_OPTIONS.map(o =>
+        `<button class="color-opt ${o.key === currentBg ? 'selected' : ''}" data-bg="${o.key}" aria-label="${o.label}" style="background: ${o.hex};"></button>`
+      ).join('');
+
+      const channels = p.channels.length
+        ? p.channels.map(c => `
+            <div class="row">
+              <div class="row-avatar c-mustard">${(c.name || 'C').charAt(0).toUpperCase()}</div>
+              <div class="row-main">
+                <div class="row-title">${esc(c.name || 'Channel')}</div>
+                <div class="row-sub" style="font-family: ui-monospace, monospace; font-size: 12px;">${c.id}</div>
+              </div>
+              <div class="row-actions">
+                <button class="btn small danger" data-remove="${c.id}">Remove</button>
+              </div>
+            </div>`).join('')
+        : `<div class="row"><div class="row-main"><div class="row-sub">No channels yet. Add one below.</div></div></div>`;
+
+      view.innerHTML = `
+        <button class="back-btn" id="backBtn">← Settings</button>
+
+        <div class="settings-section">
+          <h2>Profile</h2>
+          <div class="field">
+            <label>Name</label>
+            <input type="text" class="text-input" id="profName" value="${esc(p.name)}" maxlength="30" />
+          </div>
+          <div class="field">
+            <label>Avatar</label>
+            <div class="emoji-row">${emojis}</div>
+          </div>
+          <div class="field">
+            <label>Avatar color</label>
+            <div class="color-row">${colors}</div>
+          </div>
+          <div class="field">
+            <label>Background</label>
+            <div class="color-row">${bgSwatches}</div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h2>Channels (${p.channels.length})</h2>
+          <div class="list">${channels}</div>
+          <div class="field" style="margin-top: 16px;">
+            <label>Add channel</label>
+            <input type="text" class="text-input" id="newChannelInput" placeholder="Paste URL, @handle, or UC... ID" />
+          </div>
+          <button class="btn coral full" id="addChannelBtn">Add channel</button>
+          <div id="addChannelStatus" class="view-sub" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="settings-section">
+          <h2>Daily limits</h2>
+          <p class="view-sub" style="margin-bottom: 14px;">When the timer pill changes color, in minutes of watching today.</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field" style="margin-bottom: 0;">
+              <label style="display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-block; width: 12px; height: 12px; background: var(--mustard); border: 2px solid var(--ink); border-radius: 50%;"></span>
+                Yellow at
+              </label>
+              <input type="number" inputmode="numeric" class="text-input" id="profWarn" min="1" max="999" value="${p.warnMinutes ?? DEFAULT_WARN_MIN}" />
+            </div>
+            <div class="field" style="margin-bottom: 0;">
+              <label style="display: flex; align-items: center; gap: 8px;">
+                <span style="display: inline-block; width: 12px; height: 12px; background: var(--coral); border: 2px solid var(--ink); border-radius: 50%;"></span>
+                Red at
+              </label>
+              <input type="number" inputmode="numeric" class="text-input" id="profAlert" min="1" max="999" value="${p.alertMinutes ?? DEFAULT_ALERT_MIN}" />
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <button class="btn danger full" id="deleteProfile">Delete this profile</button>
+        </div>`;
+
+      $('#backBtn').addEventListener('click', () => goTo('settings'));
+
+      $('#profName').addEventListener('input', (e) => {
+        p.name = e.target.value.trim() || 'Unnamed';
+        saveStore();
+      });
+
+      const bindMinutesInput = (id, key, fallback) => {
+        const el = $('#' + id);
+        if (!el) return;
+        el.addEventListener('change', (e) => {
+          let v = parseInt(e.target.value, 10);
+          if (!Number.isFinite(v) || v < 1) v = fallback;
+          if (v > 999) v = 999;
+          p[key] = v;
+          e.target.value = v;
+          saveStore();
+          refreshTimerDisplay();
+        });
+      };
+      bindMinutesInput('profWarn',  'warnMinutes',  DEFAULT_WARN_MIN);
+      bindMinutesInput('profAlert', 'alertMinutes', DEFAULT_ALERT_MIN);
+
+      view.querySelectorAll('[data-emoji]').forEach(b => b.addEventListener('click', () => {
+        p.emoji = b.dataset.emoji;
+        saveStore();
+        renderProfileEditor();
+      }));
+      view.querySelectorAll('[data-color]').forEach(b => b.addEventListener('click', () => {
+        p.color = b.dataset.color;
+        saveStore();
+        renderProfileEditor();
+      }));
+      view.querySelectorAll('[data-bg]').forEach(b => b.addEventListener('click', () => {
+        p.background = b.dataset.bg;
+        saveStore();
+        applyProfileBackground();
+        renderProfileEditor();
+      }));
+
+      $('#addChannelBtn').addEventListener('click', async () => {
+        const input = $('#newChannelInput');
+        const statusEl = $('#addChannelStatus');
+        statusEl.textContent = 'Looking up…';
+        try {
+          const resolved = await resolveChannelFromInput(input.value);
+          if (p.channels.some(c => c.id === resolved.id)) {
+            statusEl.textContent = 'Already added.';
+            return;
+          }
+          p.channels.push(resolved);
+          saveStore();
+          clearCacheFor(p.id);
+          state.lastLoadedProfileId = null;
+          input.value = '';
+          statusEl.textContent = `Added ${resolved.name}.`;
+          setTimeout(() => renderProfileEditor(), 300);
+        } catch (err) {
+          statusEl.textContent = `Couldn't add: ${err.message}`;
+        }
+      });
+
+      view.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => {
+        p.channels = p.channels.filter(c => c.id !== b.dataset.remove);
+        saveStore();
+        clearCacheFor(p.id);
+        state.lastLoadedProfileId = null;
+        renderProfileEditor();
+      }));
+
+      $('#deleteProfile').addEventListener('click', () => {
+        if (store.profiles.length <= 1) {
+          alert("You need at least one profile.");
+          return;
+        }
+        openConfirm(`Delete ${p.name}?`, "This profile and its channel list will be removed.", () => {
+          clearCacheFor(p.id);
+          clearTimerData(p.id);
+          store.profiles = store.profiles.filter(x => x.id !== p.id);
+          if (store.activeProfileId === p.id) store.activeProfileId = store.profiles[0].id;
+          saveStore();
+          goTo('settings');
+        });
+      });
+    }
+
+    // ---------- Card clicks ----------
+    function onCardClick(e) {
+      const vCard = e.target.closest('[data-video]');
+      if (vCard) return openPlayer(vCard.dataset.video, vCard.dataset.title);
+      const cCard = e.target.closest('[data-channel]');
+      if (cCard) { state.currentChannel = cCard.dataset.channel; render(); window.scrollTo(0, 0); }
+    }
+
+    // ---------- Player ----------
+    const playerEl = $('#player');
+    const playerFrame = $('#playerFrame');
+    const playerTitle = $('#playerTitle');
+
+    function openPlayer(videoId, title) {
+      playerTitle.textContent = title || '';
+      playerFrame.innerHTML = `<iframe
+        src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allow="autoplay; encrypted-media; picture-in-picture"
+        allowfullscreen></iframe>`;
+      playerEl.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closePlayer() {
+      playerEl.classList.remove('open');
+      playerFrame.innerHTML = '';
+      document.body.style.overflow = '';
+    }
+    $('#playerClose').addEventListener('click', closePlayer);
+    playerEl.addEventListener('click', (e) => { if (e.target === playerEl) closePlayer(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePlayer(); });
+
+    // ---------- Parent gate ----------
+    let pendingGate = null;
+
+    function openParentGate(onPass) {
+      pendingGate = onPass;
+      const a = 2 + Math.floor(Math.random() * 8);       // 2..9
+      const b = 11 + Math.floor(Math.random() * 20);     // 11..30
+      $('#gateQuestion').textContent = `${b} × ${a} = ?`;
+      $('#gateAnswer').value = '';
+      $('#gateAnswer').dataset.answer = String(a * b);
+      $('#gateModal').classList.add('open');
+      setTimeout(() => $('#gateAnswer').focus(), 50);
+    }
+    function closeParentGate() {
+      $('#gateModal').classList.remove('open');
+      pendingGate = null;
+    }
+    $('#gateSubmit').addEventListener('click', () => {
+      const input = $('#gateAnswer');
+      if (parseInt(input.value, 10) === parseInt(input.dataset.answer, 10)) {
+        const cb = pendingGate;
+        closeParentGate();
+        if (cb) cb();
+      } else {
+        const content = document.querySelector('#gateModal .modal-content');
+        content.classList.add('shake');
+        setTimeout(() => content.classList.remove('shake'), 400);
+        openParentGate(pendingGate); // regenerate
+      }
+    });
+    $('#gateCancel').addEventListener('click', closeParentGate);
+    $('#gateAnswer').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#gateSubmit').click(); });
+
+    function openSettingsGated() {
+      openParentGate(() => goTo('settings'));
+    }
+
+    // ---------- Confirm ----------
+    let pendingConfirm = null;
+    function openConfirm(title, sub, onOk) {
+      pendingConfirm = onOk;
+      $('#confirmTitle').textContent = title;
+      $('#confirmSub').textContent = sub;
+      $('#confirmModal').classList.add('open');
+    }
+    $('#confirmOk').addEventListener('click', () => {
+      const cb = pendingConfirm;
+      $('#confirmModal').classList.remove('open');
+      pendingConfirm = null;
+      if (cb) cb();
+    });
+    $('#confirmCancel').addEventListener('click', () => {
+      $('#confirmModal').classList.remove('open');
+      pendingConfirm = null;
+    });
+
+    // ---------- Service worker ----------
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+
+    // ---------- Daily timer (per profile) ----------
+    // Each profile has a rolling daily count stored as { date, seconds }.
+    // The clock ticks only while the user is in a content view (Latest /
+    // Channels / watching). The picker, Settings, and Profile Editor don't
+    // count against anyone. Resets at local midnight on the first tick
+    // of the new day.
+    const TIMER_PREFIX = 'tooleytube:timer:v1:';
+
+    function formatElapsed(secs) {
+      const s = Math.max(0, Math.floor(secs));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      const pad = (n) => String(n).padStart(2, '0');
+      return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${pad(m)}:${pad(sec)}`;
+    }
+
+    function todayKey() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    function loadTimerData(profileId) {
+      try {
+        const raw = localStorage.getItem(TIMER_PREFIX + profileId);
+        if (raw) return JSON.parse(raw);
+      } catch {}
+      return null;
+    }
+    function saveTimerData(profileId, data) {
+      try { localStorage.setItem(TIMER_PREFIX + profileId, JSON.stringify(data)); } catch {}
+    }
+    function clearTimerData(profileId) {
+      try { localStorage.removeItem(TIMER_PREFIX + profileId); } catch {}
+    }
+
+    function displayTimerSeconds(seconds) {
+      const textEl = $('#timerText');
+      const pill = $('#timerPill');
+      if (textEl) textEl.textContent = formatElapsed(seconds);
+      if (pill) {
+        const p = activeProfile();
+        const warnSec  = (p?.warnMinutes  ?? DEFAULT_WARN_MIN)  * 60;
+        const alertSec = (p?.alertMinutes ?? DEFAULT_ALERT_MIN) * 60;
+        pill.classList.toggle('warn',  seconds >= warnSec && seconds < alertSec);
+        pill.classList.toggle('alert', seconds >= alertSec);
+      }
+    }
+
+    // Refresh display from storage without incrementing. Used on initial load
+    // and whenever the active profile changes.
+    function refreshTimerDisplay() {
+      const p = activeProfile();
+      if (!p) { displayTimerSeconds(0); return; }
+      const today = todayKey();
+      const data = loadTimerData(p.id);
+      const seconds = (data && data.date === today) ? data.seconds : 0;
+      displayTimerSeconds(seconds);
+    }
+
+    function tickTimer() {
+      const p = activeProfile();
+      if (!p) { displayTimerSeconds(0); return; }
+
+      const today = todayKey();
+      let data = loadTimerData(p.id);
+      if (!data || data.date !== today) data = { date: today, seconds: 0 };
+
+      const shouldCount = state.currentView === 'latest' || state.currentView === 'channels';
+      if (shouldCount) {
+        data.seconds += 1;
+        saveTimerData(p.id, data);
+      }
+
+      displayTimerSeconds(data.seconds);
+    }
+
+    refreshTimerDisplay();
+    setInterval(tickTimer, 1000);
+
+    // ---------- Boot ----------
+    (function boot() {
+      if (store.profiles.length > 1) {
+        goTo('picker');
+      } else {
+        // Exactly 1 profile: go straight into it
+        state.lastLoadedProfileId = null;
+        goTo('latest');
+      }
+    })();
+  </script>
+</body>
+</html>
