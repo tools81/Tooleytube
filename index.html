@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <title>Tooleytube</title>
 
   <link rel="manifest" href="manifest.json" />
@@ -307,7 +307,11 @@
       background: var(--cream); font-size: 26px; cursor: pointer;
       display: grid; place-items: center; padding: 0;
     }
-    .emoji-opt.selected { background: var(--mustard); box-shadow: var(--shadow-sm); }
+    .emoji-opt.selected { box-shadow: var(--shadow-sm); }
+    .emoji-opt.c-coral { background: var(--coral); }
+    .emoji-opt.c-mustard { background: var(--mustard); }
+    .emoji-opt.c-sage { background: var(--sage); }
+    .emoji-opt.c-cream { background: var(--cream-deep); }
 
     .color-row { display: flex; gap: 10px; margin-top: 8px; }
     .color-opt { width: 44px; height: 44px; border-radius: 50%; border: var(--border); cursor: pointer; }
@@ -322,6 +326,7 @@
       position: fixed; inset: 0; background: rgba(27, 43, 75, 0.85); backdrop-filter: blur(6px);
       display: none; align-items: center; justify-content: center; z-index: 300; padding: 20px;
     }
+    #confirmModal { z-index: 310; }
     .modal.open { display: flex; }
     .modal-content {
       background: var(--cream); border: var(--border); border-radius: var(--radius-lg);
@@ -357,7 +362,9 @@
   <!-- ================================================================== -->
   <script>
     const CONFIG = {
-      apiKey: 'AIzaSyByKnIifO9NKj8mDUZjUVuKEe3VsQpZj-A',
+      // Optional: seed value used on first launch. After that, the key is
+      // managed in Settings and stored in localStorage.
+      apiKey: '',
 
       // Optional: starter channels added to the very first profile.
       // After first launch, edit channels inside the app.
@@ -434,6 +441,27 @@
     </div>
   </div>
 
+  <!-- Import mode picker -->
+  <div class="modal" id="importModal">
+    <div class="modal-content">
+      <div class="modal-title">Import profiles</div>
+      <div class="modal-sub" id="importSummary">Found profiles. How should we bring them in?</div>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
+        <button class="btn cream full" id="importMergeBtn" style="justify-content: flex-start; text-align: left; flex-direction: column; align-items: flex-start; padding: 14px 18px;">
+          <div style="font-weight: 700;">Merge</div>
+          <div style="font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-top: 2px;">Add imported profiles alongside existing ones.</div>
+        </button>
+        <button class="btn danger full" id="importReplaceBtn" style="justify-content: flex-start; text-align: left; flex-direction: column; align-items: flex-start; padding: 14px 18px;">
+          <div style="font-weight: 700;">Replace everything</div>
+          <div style="font-size: 12px; font-weight: 500; color: rgba(251,246,238,0.8); margin-top: 2px;">Delete current profiles and use only the imported ones.</div>
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn cream" id="importCancelBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // =================================================================
     //  TOOLEYTUBE — profiles + curated YouTube
@@ -442,12 +470,100 @@
     const API_BASE = 'https://www.googleapis.com/youtube/v3';
     const STORE_KEY = 'tooleytube:store:v2';
     const CACHE_PREFIX = 'tooleytube:cache:v2:';
+    const API_KEY_STORE = 'tooleytube:apikey:v1';
+    const QUOTA_STORE = 'tooleytube:quota:v1';
+    const QUOTA_DAILY_LIMIT = 10000;
 
     const DEFAULT_WARN_MIN = 20;
     const DEFAULT_ALERT_MIN = 30;
 
+    // ---------- API key helpers ----------
+    // Key is stored in localStorage so it's editable in-app without touching
+    // source. CONFIG.apiKey (if set in source) is used as a one-time seed on
+    // first launch only — it never overrides a key the user has saved.
+    function getApiKey() {
+      try {
+        const stored = localStorage.getItem(API_KEY_STORE);
+        if (stored) return stored;
+      } catch {}
+      // First-run fallback: if the source file has a non-placeholder key, use
+      // it (and persist it so the next read is clean).
+      const seed = (CONFIG.apiKey || '').trim();
+      if (seed && !seed.startsWith('PASTE_')) {
+        try { localStorage.setItem(API_KEY_STORE, seed); } catch {}
+        return seed;
+      }
+      return '';
+    }
+    function setApiKey(key) {
+      try {
+        if (key) localStorage.setItem(API_KEY_STORE, key);
+        else localStorage.removeItem(API_KEY_STORE);
+      } catch {}
+    }
+    function hasApiKey() { return !!getApiKey(); }
+    // Mask a key for display: "AIzaSy...cXyz9" style.
+    function maskApiKey(k) {
+      if (!k) return '';
+      if (k.length <= 12) return '•'.repeat(k.length);
+      return k.slice(0, 6) + '•'.repeat(Math.max(4, k.length - 11)) + k.slice(-5);
+    }
+
+    // ---------- Quota tracking ----------
+    // YouTube quota resets at midnight Pacific Time (per Google docs), so we
+    // key by the Pacific calendar date, not local.
+    function pacificDateKey() {
+      // Intl handles DST transitions correctly for America/Los_Angeles.
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+      }).formatToParts(new Date());
+      const y = parts.find(p => p.type === 'year').value;
+      const m = parts.find(p => p.type === 'month').value;
+      const d = parts.find(p => p.type === 'day').value;
+      return `${y}-${m}-${d}`;
+    }
+
+    function loadQuotaData() {
+      try {
+        const raw = localStorage.getItem(QUOTA_STORE);
+        if (raw) return JSON.parse(raw);
+      } catch {}
+      return { date: pacificDateKey(), units: 0, calls: 0 };
+    }
+
+    function addQuotaUnits(units) {
+      const today = pacificDateKey();
+      let data = loadQuotaData();
+      if (data.date !== today) data = { date: today, units: 0, calls: 0 };
+      data.units += units;
+      data.calls += 1;
+      try { localStorage.setItem(QUOTA_STORE, JSON.stringify(data)); } catch {}
+      return data;
+    }
+
+    function getTodayQuota() {
+      const data = loadQuotaData();
+      if (data.date !== pacificDateKey()) return { date: pacificDateKey(), units: 0, calls: 0 };
+      return data;
+    }
+
+    // Wraps fetch so we count units whenever YouTube actually serves us.
+    // 429 = rate-limit (not charged). 403 quotaExceeded is also not charged,
+    // but distinguishing that from other 403s would require reading the body.
+    // We take the slight over-count on a failed call as the safer default —
+    // better to over-estimate than under-estimate against a hard daily cap.
+    async function quotedFetch(url, unitCost = 1) {
+      const res = await fetch(url);
+      if (res.status !== 429) {
+        addQuotaUnits(unitCost);
+      }
+      return res;
+    }
+
     const AVATAR_EMOJIS = ['🦄','🦖','🐶','🐱','🐸','🐼','🦊','🐯','🦁','🐻','🐨','🐰','🐲','🐙','🦋','🌟','⚡','🌈','🚀','🎨','⚽','🎸','🦕','🐢'];
     const AVATAR_COLORS = ['c-coral','c-mustard','c-sage','c-cream'];
+    const AVATAR_COLOR_BG = {'c-coral':'var(--coral)','c-mustard':'var(--mustard)','c-sage':'var(--sage)','c-cream':'var(--cream-deep)'};
 
     // Background palette. Keys are stored on profiles; hex is applied at runtime.
     // Colors chosen to keep --ink text readable at ~AA contrast.
@@ -504,6 +620,8 @@
       channelMeta: {},
       status: 'loading',
       lastLoadedProfileId: null,
+      randomPool: null,       // { channelId, videos[] } — when set, channel detail shows these
+      randomCache: {},        // channelId -> full deep-fetched list, reused for re-shuffling
     };
 
     const $ = (sel) => document.querySelector(sel);
@@ -526,6 +644,22 @@
     };
 
     const uploadsPlaylistFor = (channelId) => 'UU' + channelId.slice(2);
+
+    // Fisher-Yates shuffle (in-place on a copy).
+    function shuffled(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    // True when today's quota usage is at or above 80% of the daily limit.
+    function isQuotaHigh() {
+      const q = getTodayQuota();
+      return q.units >= QUOTA_DAILY_LIMIT * 0.8;
+    }
 
     function setStatus(text, cls = '') {
       state.status = text;
@@ -576,6 +710,7 @@
     tabbar.querySelectorAll('.tab').forEach(btn => {
       btn.addEventListener('click', () => {
         state.currentChannel = null;
+        state.randomPool = null;
         goTo(btn.dataset.view);
       });
     });
@@ -584,7 +719,7 @@
     function goTo(v, extra = {}) {
       state.currentView = v;
       Object.assign(state, extra);
-      if (v === 'picker') state.currentChannel = null;
+      if (v === 'picker') { state.currentChannel = null; state.randomPool = null; }
       renderHeader();
       renderTabbar();
       render();
@@ -598,8 +733,8 @@
 
     // ---------- API ----------
     async function fetchChannelVideos(channelId) {
-      const url = `${API_BASE}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistFor(channelId)}&maxResults=${CONFIG.maxVideosPerChannel}&key=${CONFIG.apiKey}`;
-      const res = await fetch(url);
+      const url = `${API_BASE}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistFor(channelId)}&maxResults=${CONFIG.maxVideosPerChannel}&key=${getApiKey()}`;
+      const res = await quotedFetch(url, 1);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error?.message || res.statusText);
@@ -615,10 +750,47 @@
       }));
     }
 
+    // Deep-fetches up to `maxItems` videos from a channel's uploads playlist,
+    // paginating via nextPageToken. Each page = 50 items = 1 quota unit.
+    // Used by the Randomize button to get a large pool to shuffle from.
+    async function fetchChannelUploadsDeep(channelId, maxItems = 200) {
+      const playlistId = uploadsPlaylistFor(channelId);
+      const items = [];
+      let pageToken = '';
+      let guard = 0; // page cap, independent of maxItems, just in case
+
+      while (items.length < maxItems && guard < 8) {
+        const url = `${API_BASE}/playlistItems?part=snippet,contentDetails` +
+                    `&playlistId=${playlistId}&maxResults=50` +
+                    (pageToken ? `&pageToken=${pageToken}` : '') +
+                    `&key=${getApiKey()}`;
+        const res = await quotedFetch(url, 1);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error?.message || res.statusText);
+        }
+        const data = await res.json();
+        for (const it of (data.items || [])) {
+          items.push({
+            id: it.contentDetails.videoId,
+            title: it.snippet.title,
+            thumb: it.snippet.thumbnails?.medium?.url || it.snippet.thumbnails?.default?.url,
+            publishedAt: it.contentDetails.videoPublishedAt || it.snippet.publishedAt,
+            channelId: it.snippet.channelId,
+            channelTitle: it.snippet.channelTitle,
+          });
+        }
+        if (!data.nextPageToken) break;
+        pageToken = data.nextPageToken;
+        guard++;
+      }
+      return items;
+    }
+
     async function fetchChannelMeta(channelIds) {
       if (!channelIds.length) return {};
-      const url = `${API_BASE}/channels?part=snippet&id=${channelIds.join(',')}&key=${CONFIG.apiKey}`;
-      const res = await fetch(url);
+      const url = `${API_BASE}/channels?part=snippet&id=${channelIds.join(',')}&key=${getApiKey()}`;
+      const res = await quotedFetch(url, 1);
       if (!res.ok) return {};
       const data = await res.json();
       const out = {};
@@ -651,8 +823,8 @@
       else if (/^[\w.-]+$/.test(raw)) handle = '@' + raw;
 
       if (handle) {
-        const url = `${API_BASE}/channels?part=snippet&forHandle=${encodeURIComponent(handle)}&key=${CONFIG.apiKey}`;
-        const res = await fetch(url);
+        const url = `${API_BASE}/channels?part=snippet&forHandle=${encodeURIComponent(handle)}&key=${getApiKey()}`;
+        const res = await quotedFetch(url, 1);
         if (!res.ok) throw new Error('Handle lookup failed.');
         const data = await res.json();
         const c = data.items?.[0];
@@ -685,8 +857,13 @@
       const p = activeProfile();
       if (!p) return;
 
-      if (!CONFIG.apiKey || CONFIG.apiKey.startsWith('PASTE_')) {
-        renderError('No API key set', 'Open <code>index.html</code> and paste your YouTube Data API key into <code>CONFIG.apiKey</code>.');
+      if (!hasApiKey()) {
+        view.innerHTML = `<div class="empty">
+          <h2>YouTube API key needed</h2>
+          <p>Set your YouTube Data API key in settings to get started.</p>
+          <button class="btn coral" id="goSettingsFromKey">Open settings</button>
+        </div>`;
+        $('#goSettingsFromKey').addEventListener('click', openSettingsGated);
         setStatus('no key', 'err');
         return;
       }
@@ -818,12 +995,10 @@
         view.innerHTML = `<div class="empty"><h2>Nothing loaded</h2><p>Try again in a moment.</p></div>`;
         return;
       }
-      const videos = state.videos.slice(0, 64);
-      const moreText = state.videos.length > 64 ? ` Showing ${videos.length} of ${state.videos.length} videos.` : '';
       view.innerHTML = `
         <h1 class="view-title">Latest</h1>
-        <p class="view-sub">${videos.length} video${videos.length===1?'':'s'} from ${p.channels.length} channel${p.channels.length===1?'':'s'}.${moreText}</p>
-        <div class="grid">${videos.map(videoCard).join('')}</div>`;
+        <p class="view-sub">${state.videos.length} video${state.videos.length===1?'':'s'} from ${p.channels.length} channel${p.channels.length===1?'':'s'}.</p>
+        <div class="grid">${state.videos.map(videoCard).join('')}</div>`;
       view.addEventListener('click', onCardClick);
     }
 
@@ -867,14 +1042,89 @@
       const meta = state.channelMeta[id] || {};
       const p = activeProfile();
       const name = meta.title || p.channels.find(c => c.id === id)?.name || 'Channel';
-      const vids = state.videos.filter(v => v.channelId === id);
+
+      const inRandomMode = state.randomPool && state.randomPool.channelId === id;
+      const vids = inRandomMode
+        ? state.randomPool.videos
+        : state.videos.filter(v => v.channelId === id);
+
+      const quotaBlocked = isQuotaHigh();
+      const randomBtnLabel = inRandomMode ? '🔀 Reshuffle' : '🔀 Randomize';
+      const randomBtnAttrs = quotaBlocked
+        ? `disabled aria-disabled="true" title="Disabled — today's API quota is over 80%. Resets at midnight Pacific."`
+        : '';
+      const randomBtnClass = quotaBlocked ? 'btn cream' : 'btn coral';
+
+      const subtitle = inRandomMode
+        ? `Showing ${vids.length} random video${vids.length === 1 ? '' : 's'} from this channel.`
+        : `${vids.length} recent video${vids.length === 1 ? '' : 's'}.`;
+
       view.innerHTML = `
         <button class="back-btn" id="backBtn">← All channels</button>
-        <h1 class="view-title">${esc(name)}</h1>
-        <p class="view-sub">${vids.length} recent video${vids.length === 1 ? '' : 's'}.</p>
-        <div class="grid">${vids.map(videoCard).join('')}</div>`;
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px;">
+          <h1 class="view-title" style="margin: 0;">${esc(name)}</h1>
+          <div style="display: flex; gap: 10px; flex-shrink: 0;">
+            <button id="randomizeBtn" class="${randomBtnClass}" ${randomBtnAttrs} style="${quotaBlocked ? 'opacity: 0.55; cursor: not-allowed;' : ''}">${randomBtnLabel}</button>
+            ${inRandomMode ? '<button id="showRecentBtn" class="btn cream">Back to latest</button>' : ''}
+          </div>
+        </div>
+        <div id="randomStatus" class="view-sub" style="margin-bottom: 16px; display: none;"></div>
+        <br>
+        <div class="grid" id="channelGrid">${vids.map(videoCard).join('')}</div>`;
+
       view.addEventListener('click', onCardClick);
-      $('#backBtn').addEventListener('click', () => { state.currentChannel = null; render(); });
+      $('#backBtn').addEventListener('click', () => {
+        state.randomPool = null;
+        state.currentChannel = null;
+        render();
+      });
+
+      if (inRandomMode) {
+        $('#showRecentBtn').addEventListener('click', () => {
+          state.randomPool = null;
+          renderChannelDetail();
+        });
+      }
+
+      const randomBtn = $('#randomizeBtn');
+      randomBtn.addEventListener('click', () => {
+        if (quotaBlocked) return; // belt + braces; button is also disabled
+        handleRandomize(id, name);
+      });
+    }
+
+    // Pulls a deep list (first time for this channel) or reshuffles cached list,
+    // then replaces channel detail's video grid with a random N.
+    async function handleRandomize(channelId, channelName) {
+      const statusEl = $('#randomStatus');
+      const btn = $('#randomizeBtn');
+      const grid = $('#channelGrid');
+
+      const showStatus = (msg) => {
+        if (statusEl) { statusEl.style.display = ''; statusEl.textContent = msg; }
+      };
+
+      try {
+        let pool = state.randomCache[channelId];
+
+        if (!pool || !pool.length) {
+          // First time — deep-fetch. Keep button showing progress state.
+          if (btn) { btn.disabled = true; btn.textContent = 'Fetching…'; }
+          showStatus('Pulling videos from the channel…');
+          pool = await fetchChannelUploadsDeep(channelId, 200);
+          if (!pool.length) throw new Error('No videos found.');
+          state.randomCache[channelId] = pool;
+        }
+
+        const n = Math.min(CONFIG.maxVideosPerChannel, pool.length);
+        const picks = shuffled(pool).slice(0, n);
+        state.randomPool = { channelId, videos: picks };
+        renderChannelDetail();
+      } catch (err) {
+        console.error(err);
+        showStatus(`Couldn't randomize: ${err.message}`);
+        if (btn) { btn.disabled = false; btn.textContent = '🔀 Randomize'; }
+      }
     }
 
     function renderSettings() {
@@ -890,6 +1140,29 @@
           </div>
         </div>`).join('');
 
+      const currentKey = getApiKey();
+      const quota = getTodayQuota();
+      const pct = Math.min(100, Math.round((quota.units / QUOTA_DAILY_LIMIT) * 100));
+      const quotaColor = pct >= 90 ? 'var(--coral)' : pct >= 70 ? 'var(--mustard)' : 'var(--sage)';
+      const keyField = currentKey
+        ? `<div class="row">
+             <div class="row-avatar c-sage" aria-hidden="true">🔑</div>
+             <div class="row-main">
+               <div class="row-title" id="keyDisplay" style="font-family: ui-monospace, monospace; font-size: 13px; word-break: break-all;">${maskApiKey(currentKey)}</div>
+               <div class="row-sub">YouTube Data API key · hidden by default</div>
+             </div>
+             <div class="row-actions">
+               <button class="btn small" id="revealKey">Show</button>
+             </div>
+           </div>`
+        : `<div class="row">
+             <div class="row-avatar c-coral" aria-hidden="true">!</div>
+             <div class="row-main">
+               <div class="row-title">No key set</div>
+               <div class="row-sub">Set a YouTube Data API key to load videos.</div>
+             </div>
+           </div>`;
+
       view.innerHTML = `
         <button class="back-btn" id="backBtn">← Back</button>
         <h1 class="view-title">Settings</h1>
@@ -903,14 +1176,66 @@
         </div>
 
         <div class="settings-section">
+          <h2>YouTube API key</h2>
+          <p class="view-sub" style="margin-bottom: 8px;">Required to fetch videos. Get one free from Google Cloud:</p>
+          <ol class="view-sub" style="margin: 0 0 8px 0; padding-left: 20px; line-height: 1.7;">
+            <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener" style="color: var(--coral); font-weight: 700;">console.cloud.google.com</a></li>
+            <li>Top-left dropdown → <strong>New Project</strong>. Name it whatever.</li>
+            <li>Search bar → <strong>YouTube Data API v3</strong> → <strong>Enable</strong>.</li>
+            <li>Left sidebar → <strong>APIs &amp; Services → Credentials → + Create Credentials → API key</strong>. Copy it.</li>
+            <li>Click the new key and add restrictions: <strong>API restrictions</strong> → only YouTube Data API v3.</li>
+          </ol>
+          <p class="view-sub" style="margin-bottom: 12px;">Paste the key below and tap <strong>Test</strong> to verify it works, then <strong>Save</strong>. The key is stored only in this device's localStorage — it's never sent anywhere except YouTube's API.</p>
+          <div class="list" style="margin-bottom: 12px;">${keyField}</div>
+
+          <div style="background: var(--cream); border: var(--border); border-radius: 18px; box-shadow: var(--shadow-sm); padding: 14px 16px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
+              <div style="font-weight: 700; font-size: 14px;">Today's quota</div>
+              <div style="font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px;">
+                ${quota.units.toLocaleString()} <span style="color: var(--ink-soft); font-weight: 500;">/ ${QUOTA_DAILY_LIMIT.toLocaleString()} units</span>
+              </div>
+            </div>
+            <div style="height: 10px; background: var(--cream-deep); border: 1.5px solid var(--ink); border-radius: 999px; overflow: hidden;">
+              <div style="height: 100%; width: ${pct}%; background: ${quotaColor}; transition: width 0.3s ease;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--ink-soft);">
+              <span>${quota.calls} call${quota.calls === 1 ? '' : 's'} today</span>
+              <span>Resets at midnight Pacific</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>${currentKey ? 'Replace key' : 'Paste key'}</label>
+            <input type="password" class="text-input" id="newKeyInput" autocomplete="off" spellcheck="false" placeholder="AIzaSy…" />
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn coral" id="saveKeyBtn">Save key</button>
+            <button class="btn cream" id="testKeyBtn">Test</button>
+            ${currentKey ? '<button class="btn danger" id="removeKeyBtn">Remove</button>' : ''}
+          </div>
+          <div id="keyStatus" class="view-sub" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="settings-section">
           <h2>Cache</h2>
           <p class="view-sub" style="margin-bottom:10px;">Videos cache for ${CONFIG.cacheMinutes} min. Clear to force refresh.</p>
           <button class="btn cream" id="clearAllCache">Clear all caches</button>
         </div>
 
         <div class="settings-section">
+          <h2>Backup</h2>
+          <p class="view-sub" style="margin-bottom: 12px;">Save profiles to a file, or restore from one. The API key is not included — set it separately on each device.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn cream" id="exportBtn">Export profiles</button>
+            <button class="btn cream" id="importBtn">Import profiles</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json,.json" style="display:none" />
+          <div id="backupStatus" class="view-sub" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="settings-section">
           <h2>About</h2>
-          <p class="view-sub">Profiles are stored on this device. API key lives in <code>index.html</code>.</p>
+          <p class="view-sub">Profiles, channel lists, and your API key are all stored on this device only.</p>
         </div>`;
 
       $('#backBtn').addEventListener('click', () => goTo(store.profiles.length > 1 ? 'picker' : 'latest'));
@@ -925,9 +1250,188 @@
       });
       $('#clearAllCache').addEventListener('click', () => {
         store.profiles.forEach(p => clearCacheFor(p.id));
+        state.randomCache = {};
+        state.randomPool = null;
         state.lastLoadedProfileId = null;
         alert('Caches cleared.');
       });
+
+      // API key section handlers
+      const keyStatus = $('#keyStatus');
+      const newKeyInput = $('#newKeyInput');
+
+      const revealBtn = $('#revealKey');
+      if (revealBtn) {
+        revealBtn.addEventListener('click', () => {
+          const display = $('#keyDisplay');
+          const k = getApiKey();
+          if (!k || !display) return;
+          const isMasked = display.textContent !== k;
+          display.textContent = isMasked ? k : maskApiKey(k);
+          revealBtn.textContent = isMasked ? 'Hide' : 'Show';
+        });
+      }
+
+      async function testKeyValue(key) {
+        if (!key) throw new Error('Empty key');
+        // Cheapest valid call: a channels.list lookup for a well-known channel
+        // (Google Developers, UC_x5XG1OV2P6uZZ5FSM9Ttw). If the key is bad,
+        // Google returns a 400 with error.status = INVALID_ARGUMENT or similar.
+        const url = `${API_BASE}/channels?part=id&id=UC_x5XG1OV2P6uZZ5FSM9Ttw&key=${encodeURIComponent(key)}`;
+        const res = await quotedFetch(url, 1);
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error?.message || `HTTP ${res.status}`);
+        }
+      }
+
+      $('#testKeyBtn').addEventListener('click', async () => {
+        const candidate = (newKeyInput.value || '').trim() || getApiKey();
+        if (!candidate) { keyStatus.textContent = 'Paste a key first.'; return; }
+        keyStatus.textContent = 'Testing…';
+        try {
+          await testKeyValue(candidate);
+          keyStatus.textContent = '✓ Key works.';
+        } catch (err) {
+          keyStatus.textContent = `✗ ${err.message}`;
+        }
+      });
+
+      $('#saveKeyBtn').addEventListener('click', async () => {
+        const candidate = (newKeyInput.value || '').trim();
+        if (!candidate) { keyStatus.textContent = 'Paste a key first.'; return; }
+        keyStatus.textContent = 'Testing & saving…';
+        try {
+          await testKeyValue(candidate);
+          setApiKey(candidate);
+          // Invalidate every profile's cache so the new key is exercised fresh.
+          store.profiles.forEach(p => clearCacheFor(p.id));
+          state.lastLoadedProfileId = null;
+          keyStatus.textContent = '✓ Saved.';
+          setTimeout(() => renderSettings(), 400);
+        } catch (err) {
+          keyStatus.textContent = `✗ ${err.message}. Not saved.`;
+        }
+      });
+
+      const removeBtn = $('#removeKeyBtn');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+          openConfirm('Remove API key?', 'Videos will stop loading until a new key is set.', () => {
+            setApiKey('');
+            store.profiles.forEach(p => clearCacheFor(p.id));
+            state.lastLoadedProfileId = null;
+            renderSettings();
+          });
+        });
+      }
+
+      // Export / Import profiles
+      const backupStatus = $('#backupStatus');
+
+      $('#exportBtn').addEventListener('click', () => {
+        // Strip nothing profile-structural; omit anything secret or derived.
+        const payload = {
+          format: 'tooleytube-profiles',
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          profileCount: store.profiles.length,
+          profiles: store.profiles.map(p => ({
+            name: p.name,
+            emoji: p.emoji,
+            color: p.color,
+            background: p.background ?? DEFAULT_BG_KEY,
+            warnMinutes: p.warnMinutes ?? DEFAULT_WARN_MIN,
+            alertMinutes: p.alertMinutes ?? DEFAULT_ALERT_MIN,
+            channels: p.channels.map(c => ({ id: c.id, name: c.name })),
+          })),
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const stamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        a.href = url;
+        a.download = `tooleytube-profiles-${stamp}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        backupStatus.textContent = `✓ Exported ${payload.profileCount} profile${payload.profileCount === 1 ? '' : 's'}.`;
+      });
+
+      const importFileInput = $('#importFile');
+
+      $('#importBtn').addEventListener('click', () => {
+        backupStatus.textContent = '';
+        importFileInput.value = ''; // allow re-picking same file
+        importFileInput.click();
+      });
+
+      importFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          if (data.format !== 'tooleytube-profiles' || !Array.isArray(data.profiles)) {
+            throw new Error('File does not look like a Tooleytube export.');
+          }
+          const sanitized = sanitizeImportedProfiles(data.profiles);
+          if (!sanitized.length) throw new Error('No valid profiles in file.');
+          openImportModeModal(sanitized);
+        } catch (err) {
+          backupStatus.textContent = `✗ Import failed: ${err.message}`;
+        }
+      });
+    }
+
+    // ---------- Import helpers ----------
+    function sanitizeImportedProfiles(raw) {
+      // Keep only shaped entries; don't trust file content.
+      return raw
+        .filter(p => p && typeof p.name === 'string' && Array.isArray(p.channels))
+        .map(p => ({
+          id: newProfileId(), // always regenerate — prevents collisions with live profiles
+          name: String(p.name).slice(0, 30) || 'Imported',
+          emoji: typeof p.emoji === 'string' && p.emoji.length <= 4 ? p.emoji : '🦄',
+          color: AVATAR_COLORS.includes(p.color) ? p.color : 'c-coral',
+          background: BACKGROUND_OPTIONS.some(o => o.key === p.background) ? p.background : DEFAULT_BG_KEY,
+          warnMinutes: Number.isFinite(p.warnMinutes) && p.warnMinutes > 0 ? Math.min(999, Math.floor(p.warnMinutes)) : DEFAULT_WARN_MIN,
+          alertMinutes: Number.isFinite(p.alertMinutes) && p.alertMinutes > 0 ? Math.min(999, Math.floor(p.alertMinutes)) : DEFAULT_ALERT_MIN,
+          channels: p.channels
+            .filter(c => c && typeof c.id === 'string' && /^UC[\w-]{22}$/.test(c.id))
+            .map(c => ({ id: c.id, name: typeof c.name === 'string' ? c.name : 'Channel' })),
+        }));
+    }
+
+    let pendingImport = null;
+    function openImportModeModal(profiles) {
+      pendingImport = profiles;
+      const count = profiles.length;
+      $('#importSummary').textContent = `Found ${count} profile${count === 1 ? '' : 's'} in the file. Currently you have ${store.profiles.length}. How should we bring them in?`;
+      $('#importModal').classList.add('open');
+    }
+    function closeImportModeModal() {
+      $('#importModal').classList.remove('open');
+      pendingImport = null;
+    }
+    function applyImport(mode) {
+      if (!pendingImport) return;
+      const imported = pendingImport;
+      if (mode === 'replace') {
+        // Clear caches and timers for old profiles before overwriting
+        store.profiles.forEach(p => { clearCacheFor(p.id); clearTimerData(p.id); });
+        store.profiles = imported;
+      } else {
+        store.profiles = store.profiles.concat(imported);
+      }
+      store.activeProfileId = store.profiles[0]?.id ?? null;
+      saveStore();
+      state.lastLoadedProfileId = null;
+      closeImportModeModal();
+      renderSettings();
+      const statusEl = $('#backupStatus');
+      if (statusEl) statusEl.textContent = `✓ Imported ${imported.length} profile${imported.length === 1 ? '' : 's'}.`;
     }
 
     function renderProfileEditor() {
@@ -935,7 +1439,7 @@
       if (!p) return goTo('settings');
 
       const emojis = AVATAR_EMOJIS.map(e =>
-        `<button class="emoji-opt ${e === p.emoji ? 'selected' : ''}" data-emoji="${e}">${e}</button>`
+        `<button class="emoji-opt${e === p.emoji ? ' selected' : ''}"${e === p.emoji ? ` style="background:${AVATAR_COLOR_BG[p.color] || 'var(--cream)'}"` : ''} data-emoji="${e}">${e}</button>`
       ).join('');
       const colors = AVATAR_COLORS.map(c =>
         `<button class="color-opt ${c} ${c === p.color ? 'selected' : ''}" data-color="${c}" aria-label="${c}"></button>`
@@ -1191,6 +1695,13 @@
       $('#confirmModal').classList.remove('open');
       pendingConfirm = null;
     });
+
+    $('#importMergeBtn').addEventListener('click', () => applyImport('merge'));
+    $('#importReplaceBtn').addEventListener('click', () => {
+      // Extra guardrail before destructive action.
+      openConfirm('Replace all profiles?', 'Current profiles will be deleted and replaced with the imported ones. This cannot be undone.', () => applyImport('replace'));
+    });
+    $('#importCancelBtn').addEventListener('click', closeImportModeModal);
 
     // ---------- Service worker ----------
     if ('serviceWorker' in navigator) {
