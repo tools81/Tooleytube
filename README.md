@@ -164,6 +164,21 @@ Import validates every field before touching your data. Malformed entries are si
 - **Screen Time → App Limits** for daily time caps (in addition to Tooleytube's in-app limits).
 - **Restrictions → Web Content** can block all other browsing if the iPad is dedicated to Tooleytube.
 
+### Screen Time web content restrictions
+
+If web content restrictions are enabled, videos will appear blank with no error shown. Go to **Settings → Screen Time → Content & Privacy Restrictions → Content Restrictions → Web Content** and add these domains to **Always Allow**:
+
+| Domain | Purpose |
+|---|---|
+| Your app domain (e.g. `azurestaticapps.net`) | The PWA itself |
+| `youtube-nocookie.com` | Embed player iframe |
+| `youtube.com` | Player resources |
+| `googlevideo.com` | Video stream delivery (CDN) |
+| `ytimg.com` | Video thumbnails |
+| `googleapis.com` | YouTube Data API |
+
+If using **Allowed Websites Only** mode, all six must be added. If using **Limit Adult Websites**, add them to the Always Allow list only.
+
 ---
 
 ## Debugging

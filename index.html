@@ -1217,6 +1217,20 @@
         </div>
 
         <div class="settings-section">
+          <h2>Screen Time &amp; web restrictions</h2>
+          <p class="view-sub" style="margin-bottom: 8px;">If Screen Time web content restrictions are on, videos will appear blank. Add these domains to <strong>Always Allow</strong>:</p>
+          <ul class="view-sub" style="margin: 0 0 8px 0; padding-left: 20px; line-height: 1.9;">
+            <li>Your app domain (e.g. <code>azurestaticapps.net</code>)</li>
+            <li><code>youtube-nocookie.com</code> — embed player</li>
+            <li><code>youtube.com</code> — player resources</li>
+            <li><code>googlevideo.com</code> — video stream delivery</li>
+            <li><code>ytimg.com</code> — thumbnails</li>
+            <li><code>googleapis.com</code> — YouTube Data API</li>
+          </ul>
+          <p class="view-sub">Settings → Screen Time → Content &amp; Privacy → Content Restrictions → Web Content.</p>
+        </div>
+
+        <div class="settings-section">
           <h2>Cache</h2>
           <p class="view-sub" style="margin-bottom:10px;">Videos cache for ${CONFIG.cacheMinutes} min. Clear to force refresh.</p>
           <button class="btn cream" id="clearAllCache">Clear all caches</button>
