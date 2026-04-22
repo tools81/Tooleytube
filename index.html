@@ -1218,7 +1218,8 @@
 
         <div class="settings-section">
           <h2>Screen Time &amp; web restrictions</h2>
-          <p class="view-sub" style="margin-bottom: 8px;">If Screen Time web content restrictions are on, videos will appear blank. Add these domains to <strong>Always Allow</strong>:</p>
+          <p class="view-sub" style="margin-bottom: 8px;">If Screen Time web content restrictions are on, videos will appear blank. This is caused by iOS filtering iframe content more aggressively in PWA mode than in Safari — <strong>Allowed Websites Only</strong> mode is too strict for embedded video to work.</p>
+          <p class="view-sub" style="margin-bottom: 8px;"><strong>Recommended:</strong> use <strong>Limit Adult Websites</strong> mode instead, then add these domains to <strong>Always Allow</strong>:</p>
           <ul class="view-sub" style="margin: 0 0 8px 0; padding-left: 20px; line-height: 1.9;">
             <li>Your app domain (e.g. <code>azurestaticapps.net</code>)</li>
             <li><code>youtube-nocookie.com</code> — embed player</li>
@@ -1227,7 +1228,7 @@
             <li><code>ytimg.com</code> — thumbnails</li>
             <li><code>googleapis.com</code> — YouTube Data API</li>
           </ul>
-          <p class="view-sub">Settings → Screen Time → Content &amp; Privacy → Content Restrictions → Web Content.</p>
+          <p class="view-sub">Settings → Screen Time → Content &amp; Privacy → Content Restrictions → Web Content → Limit Adult Websites.</p>
         </div>
 
         <div class="settings-section">

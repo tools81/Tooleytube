@@ -166,7 +166,9 @@ Import validates every field before touching your data. Malformed entries are si
 
 ### Screen Time web content restrictions
 
-If web content restrictions are enabled, videos will appear blank with no error shown. Go to **Settings → Screen Time → Content & Privacy Restrictions → Content Restrictions → Web Content** and add these domains to **Always Allow**:
+If web content restrictions are enabled, videos will appear blank with no error shown. This is an iOS limitation: when Tooleytube runs as an installed PWA it uses WKWebView, and Screen Time filters iframe content more aggressively there than in Safari. **Allowed Websites Only** mode is too strict for embedded video to work regardless of which domains you allow.
+
+**Recommended:** use **Limit Adult Websites** mode instead, then add these domains to **Always Allow** (Settings → Screen Time → Content & Privacy Restrictions → Content Restrictions → Web Content):
 
 | Domain | Purpose |
 |---|---|
@@ -177,7 +179,7 @@ If web content restrictions are enabled, videos will appear blank with no error 
 | `ytimg.com` | Video thumbnails |
 | `googleapis.com` | YouTube Data API |
 
-If using **Allowed Websites Only** mode, all six must be added. If using **Limit Adult Websites**, add them to the Always Allow list only.
+"Limit Adult Websites" still blocks adult content across Safari and apps while allowing the domains above to load inside the PWA.
 
 ---
 
