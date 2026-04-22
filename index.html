@@ -1183,7 +1183,7 @@
             <li>Top-left dropdown → <strong>New Project</strong>. Name it whatever.</li>
             <li>Search bar → <strong>YouTube Data API v3</strong> → <strong>Enable</strong>.</li>
             <li>Left sidebar → <strong>APIs &amp; Services → Credentials → + Create Credentials → API key</strong>. Copy it.</li>
-            <li>Click the new key and add restrictions: <strong>API restrictions</strong> → only YouTube Data API v3.</li>
+            <li>Click the new key → <strong>Application restrictions</strong>: select <strong>Websites</strong> and add the domain (<code>https://zealous-sky-0b3c54910.7.azurestaticapps.net//*</code>). Then <strong>API restrictions</strong> → only YouTube Data API v3.</li>
           </ol>
           <p class="view-sub" style="margin-bottom: 12px;">Paste the key below and tap <strong>Test</strong> to verify it works, then <strong>Save</strong>. The key is stored only in this device's localStorage — it's never sent anywhere except YouTube's API.</p>
           <div class="list" style="margin-bottom: 12px;">${keyField}</div>
@@ -1625,8 +1625,7 @@
       playerTitle.textContent = title || '';
       playerFrame.innerHTML = `<iframe
         src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1"
-        referrerpolicy="strict-origin-when-cross-origin"
-        allow="autoplay; encrypted-media; picture-in-picture"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowfullscreen></iframe>`;
       playerEl.classList.add('open');
       document.body.style.overflow = 'hidden';

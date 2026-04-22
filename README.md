@@ -31,7 +31,7 @@ Everything — profiles, channel lists, the API key, daily watch times — is ma
 4. Left sidebar → **APIs & Services → Credentials → + Create Credentials → API key**. Copy it.
 5. Click the new key and add restrictions:
    - **API restrictions**: Restrict → only **YouTube Data API v3**.
-   - **Application restriction**: "HTTP referrers" + your deployed domain (e.g. `tooleytube-xyz.azurestaticapps.net/*`). For local-only use, leave as None.
+   - **Application restriction**: select **Websites** + your deployed domain (e.g. `tooleytube-xyz.azurestaticapps.net/*`). For local-only use, leave as None.
 
 Free tier: 10,000 units/day. Tooleytube typically uses 1–10 units per page load (cached 60 min). The app tracks usage locally in Settings so you can see where you stand — see **Quota tracking** below.
 
