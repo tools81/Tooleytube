@@ -170,7 +170,7 @@
     .card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
     .card-title {
       font-weight: 700; font-size: 16px; line-height: 1.3; color: var(--ink);
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .card-meta { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-soft); font-weight: 500; }
     .card-channel { font-weight: 700; color: var(--coral); }
@@ -1639,9 +1639,10 @@
     function openPlayer(videoId, title) {
       playerTitle.textContent = title || '';
       playerFrame.innerHTML = `<iframe
-        src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowfullscreen></iframe>`;
+        src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&origin=${location.origin}"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+        sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`;
       playerEl.classList.add('open');
       document.body.style.overflow = 'hidden';
     }
@@ -1650,6 +1651,17 @@
       playerFrame.innerHTML = '';
       document.body.style.overflow = '';
     }
+    // Close the player when the video ends so the suggestions screen never appears
+    window.addEventListener('message', (e) => {
+      if (!e.origin.includes('youtube')) return;
+      try {
+        const data = JSON.parse(e.data);
+        if (data.event === 'onReady') {
+          e.source.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*');
+        }
+        if (data.event === 'onStateChange' && data.info === 0) closePlayer();
+      } catch {}
+    });
     $('#playerClose').addEventListener('click', closePlayer);
     playerEl.addEventListener('click', (e) => { if (e.target === playerEl) closePlayer(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePlayer(); });
