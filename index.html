@@ -343,6 +343,32 @@
       60% { transform: translateX(-4px); } 80% { transform: translateX(4px); }
     }
 
+    /* Setup Wizard */
+    .wizard-content {
+      background: var(--cream); border: var(--border); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow); padding: 32px 28px; width: 100%; max-width: 520px;
+    }
+    .wizard-dots { display: flex; gap: 8px; margin-bottom: 28px; }
+    .wizard-dot {
+      height: 8px; flex: 1; border-radius: 999px; border: 2px solid var(--ink);
+      background: var(--cream-deep); transition: background 0.2s ease;
+    }
+    .wizard-dot.active { background: var(--coral); }
+    .wizard-dot.done { background: var(--sage); }
+    .wizard-icon { font-size: 48px; margin-bottom: 12px; line-height: 1; }
+    .wizard-title { font-family: 'Fraunces', serif; font-weight: 900; font-size: 26px; letter-spacing: -0.02em; margin-bottom: 12px; line-height: 1.1; }
+    .wizard-body { color: var(--ink-soft); font-size: 15px; line-height: 1.65; margin-bottom: 24px; }
+    .wizard-body ol { padding-left: 20px; }
+    .wizard-body li { margin-bottom: 6px; }
+    .wizard-body strong { color: var(--ink); }
+    .wizard-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .wizard-link-btn {
+      display: inline-flex; align-items: center; gap: 6px; margin-top: 16px;
+      background: var(--ink); color: var(--cream); border: var(--border); border-radius: 999px;
+      padding: 12px 18px; font-family: inherit; font-weight: 700; font-size: 14px;
+      box-shadow: var(--shadow-sm); text-decoration: none;
+    }
+
     @media (max-width: 500px) {
       .view-title { font-size: 34px; }
       .picker-title { font-size: 36px; margin: 24px 0 24px; }
@@ -438,6 +464,14 @@
         <button class="btn cream" id="confirmCancel">Cancel</button>
         <button class="btn danger" id="confirmOk">Delete</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Setup Wizard -->
+  <div class="modal" id="wizardModal">
+    <div class="wizard-content">
+      <div class="wizard-dots" id="wizardDots"></div>
+      <div id="wizardBody"></div>
     </div>
   </div>
 
@@ -559,6 +593,16 @@
         addQuotaUnits(unitCost);
       }
       return res;
+    }
+
+    async function testKeyValue(key) {
+      if (!key) throw new Error('Empty key');
+      const url = `${API_BASE}/channels?part=id&id=UC_x5XG1OV2P6uZZ5FSM9Ttw&key=${encodeURIComponent(key)}`;
+      const res = await quotedFetch(url, 1);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error?.message || `HTTP ${res.status}`);
+      }
     }
 
     const AVATAR_EMOJIS = ['🦄','🦖','🐶','🐱','🐸','🐼','🦊','🐯','🦁','🐻','🐨','🐰','🐲','🐙','🦋','🌟','⚡','🌈','🚀','🎨','⚽','🎸','🦕','🐢'];
@@ -859,10 +903,12 @@
 
       if (!hasApiKey()) {
         view.innerHTML = `<div class="empty">
-          <h2>YouTube API key needed</h2>
-          <p>Set your YouTube Data API key in settings to get started.</p>
-          <button class="btn coral" id="goSettingsFromKey">Open settings</button>
+          <h2>Welcome to Tooleytube!</h2>
+          <p>A parent needs to set up the app first. It only takes a few minutes.</p>
+          <button class="btn coral" id="goWizardFromKey" style="margin-bottom:10px;">Set up now →</button><br>
+          <button class="btn cream" id="goSettingsFromKey" style="margin-top:6px;">Manual setup</button>
         </div>`;
+        $('#goWizardFromKey').addEventListener('click', openWizardGated);
         $('#goSettingsFromKey').addEventListener('click', openSettingsGated);
         setStatus('no key', 'err');
         return;
@@ -1177,7 +1223,8 @@
 
         <div class="settings-section">
           <h2>YouTube API key</h2>
-          <p class="view-sub" style="margin-bottom: 8px;">Required to fetch videos. Get one free from Google Cloud:</p>
+          <button class="btn coral full" id="runWizardBtn" style="margin-bottom:16px;">Run setup wizard →</button>
+          <p class="view-sub" style="margin-bottom: 8px;">Or set up manually — get a free key from Google Cloud:</p>
           <ol class="view-sub" style="margin: 0 0 8px 0; padding-left: 20px; line-height: 1.7;">
             <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener" style="color: var(--coral); font-weight: 700;">console.cloud.google.com</a></li>
             <li>Top-left dropdown → <strong>New Project</strong>. Name it whatever.</li>
@@ -1275,6 +1322,8 @@
       const keyStatus = $('#keyStatus');
       const newKeyInput = $('#newKeyInput');
 
+      $('#runWizardBtn').addEventListener('click', () => openWizard());
+
       const revealBtn = $('#revealKey');
       if (revealBtn) {
         revealBtn.addEventListener('click', () => {
@@ -1285,19 +1334,6 @@
           display.textContent = isMasked ? k : maskApiKey(k);
           revealBtn.textContent = isMasked ? 'Hide' : 'Show';
         });
-      }
-
-      async function testKeyValue(key) {
-        if (!key) throw new Error('Empty key');
-        // Cheapest valid call: a channels.list lookup for a well-known channel
-        // (Google Developers, UC_x5XG1OV2P6uZZ5FSM9Ttw). If the key is bad,
-        // Google returns a 400 with error.status = INVALID_ARGUMENT or similar.
-        const url = `${API_BASE}/channels?part=id&id=UC_x5XG1OV2P6uZZ5FSM9Ttw&key=${encodeURIComponent(key)}`;
-        const res = await quotedFetch(url, 1);
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error?.message || `HTTP ${res.status}`);
-        }
       }
 
       $('#testKeyBtn').addEventListener('click', async () => {
@@ -1665,6 +1701,134 @@
     $('#playerClose').addEventListener('click', closePlayer);
     playerEl.addEventListener('click', (e) => { if (e.target === playerEl) closePlayer(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePlayer(); });
+
+    // ---------- Setup Wizard ----------
+    let wizardStep = 0;
+
+    function openWizard(step = 0) {
+      wizardStep = step;
+      renderWizardStep();
+      $('#wizardModal').classList.add('open');
+    }
+
+    function openWizardGated() {
+      openParentGate(() => openWizard());
+    }
+
+    function closeWizard() {
+      $('#wizardModal').classList.remove('open');
+    }
+
+    function renderWizardStep() {
+      const TOTAL = 5;
+      $('#wizardDots').innerHTML = Array.from({ length: TOTAL }, (_, i) =>
+        `<div class="wizard-dot ${i < wizardStep ? 'done' : i === wizardStep ? 'active' : ''}"></div>`
+      ).join('');
+
+      const steps = [
+        {
+          icon: '📺',
+          title: 'Welcome to Tooleytube!',
+          body: `<p>To show videos, the app needs a free YouTube API key from Google. We'll walk you through creating one — it takes about 5 minutes.</p>`,
+          extra: '',
+          actions: `<div style="flex:1"></div><button class="btn coral" id="wNext">Get started →</button>`
+        },
+        {
+          icon: '☁️',
+          title: 'Create a Google Cloud project',
+          body: `<ol>
+            <li>Tap the button below to open <strong>Google Cloud Console</strong> and sign in with your Google account.</li>
+            <li>Click the project dropdown at the top — it may say <em>"Select a project"</em>.</li>
+            <li>Choose <strong>New Project</strong>, give it any name (e.g. "Tooleytube"), then click <strong>Create</strong>.</li>
+          </ol>
+          <a href="https://console.cloud.google.com/" target="_blank" rel="noopener" class="wizard-link-btn">Open Google Cloud Console ↗</a>`,
+          extra: '',
+          actions: `<button class="btn cream" id="wBack">← Back</button><div style="flex:1"></div><button class="btn coral" id="wNext">Next →</button>`
+        },
+        {
+          icon: '▶️',
+          title: 'Enable the YouTube Data API',
+          body: `<ol>
+            <li>In the <strong>search bar</strong> at the top of Google Cloud, type <strong>YouTube Data API v3</strong>.</li>
+            <li>Click the result that appears, then click <strong>Enable</strong>.</li>
+          </ol>
+          <p style="margin-top:12px;">That's it for this step — now we'll create a key for the app to use.</p>`,
+          extra: '',
+          actions: `<button class="btn cream" id="wBack">← Back</button><div style="flex:1"></div><button class="btn coral" id="wNext">Next →</button>`
+        },
+        {
+          icon: '🔑',
+          title: 'Create an API key',
+          body: `<ol>
+            <li>In the left sidebar, go to <strong>APIs &amp; Services → Credentials</strong>.</li>
+            <li>Click <strong>+ Create Credentials</strong> at the top, then choose <strong>API key</strong>.</li>
+            <li>Your new key will appear in a popup — <strong>copy it</strong> to your clipboard.</li>
+          </ol>
+          <p style="margin-top:12px;font-size:13px;">Optional: click <em>Edit API key</em> and restrict it to the YouTube Data API v3 only for extra security.</p>`,
+          extra: '',
+          actions: `<button class="btn cream" id="wBack">← Back</button><div style="flex:1"></div><button class="btn coral" id="wNext">Next →</button>`
+        },
+        {
+          icon: '✅',
+          title: 'Paste your key',
+          body: `<p>Paste the key you just copied below. Tap <strong>Save key</strong> and we'll verify it works before saving.</p>`,
+          extra: `
+            <div class="field">
+              <label>API Key</label>
+              <input type="password" class="text-input" id="wizardKeyInput" autocomplete="off" spellcheck="false" placeholder="AIzaSy…" />
+            </div>
+            <div id="wizardStatus" class="view-sub" style="margin-bottom:16px;min-height:20px;"></div>
+          `,
+          actions: `<button class="btn cream" id="wBack">← Back</button><div style="flex:1"></div><button class="btn cream" id="wTest">Test</button><button class="btn coral" id="wSave">Save key</button>`
+        }
+      ];
+
+      const s = steps[wizardStep];
+      $('#wizardBody').innerHTML = `
+        <div class="wizard-icon">${s.icon}</div>
+        <div class="wizard-title">${s.title}</div>
+        <div class="wizard-body">${s.body}</div>
+        ${s.extra}
+        <div class="wizard-actions">${s.actions}</div>
+      `;
+
+      const back = $('#wBack');
+      const next = $('#wNext');
+      if (back) back.addEventListener('click', () => { wizardStep--; renderWizardStep(); });
+      if (next) next.addEventListener('click', () => { wizardStep++; renderWizardStep(); });
+
+      if (wizardStep === 4) {
+        $('#wTest').addEventListener('click', async () => {
+          const key = ($('#wizardKeyInput').value || '').trim();
+          const status = $('#wizardStatus');
+          if (!key) { status.textContent = 'Paste a key first.'; return; }
+          status.textContent = 'Testing…';
+          try {
+            await testKeyValue(key);
+            status.textContent = '✓ Key works!';
+          } catch (err) {
+            status.textContent = `✗ ${err.message}`;
+          }
+        });
+
+        $('#wSave').addEventListener('click', async () => {
+          const key = ($('#wizardKeyInput').value || '').trim();
+          const status = $('#wizardStatus');
+          if (!key) { status.textContent = 'Paste a key first.'; return; }
+          status.textContent = 'Testing & saving…';
+          try {
+            await testKeyValue(key);
+            setApiKey(key);
+            store.profiles.forEach(p => clearCacheFor(p.id));
+            state.lastLoadedProfileId = null;
+            closeWizard();
+            render();
+          } catch (err) {
+            status.textContent = `✗ ${err.message}`;
+          }
+        });
+      }
+    }
 
     // ---------- Parent gate ----------
     let pendingGate = null;
