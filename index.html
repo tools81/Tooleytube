@@ -1298,7 +1298,15 @@
         <div class="settings-section">
           <h2>About</h2>
           <p class="view-sub">Profiles, channel lists, and your API key are all stored on this device only.</p>
+          <p class="view-sub" style="margin-top:8px;">Version: <span id="swVersionLabel">—</span></p>
         </div>`;
+
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          const el = $('#swVersionLabel');
+          if (el) el.textContent = keys.find(k => k.startsWith('tooleytube-')) || '—';
+        });
+      }
 
       $('#backBtn').addEventListener('click', () => goTo(store.profiles.length > 1 ? 'picker' : 'latest'));
       view.querySelectorAll('[data-edit]').forEach(b =>
