@@ -294,6 +294,15 @@
 
     .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
     .field label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .toggle-row .toggle-label { flex: 1; }
+    .toggle-row .toggle-label strong { display: block; font-size: 15px; }
+    .toggle-switch { position: relative; width: 50px; height: 28px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-switch .slider { position: absolute; inset: 0; background: var(--cream-deep); border: var(--border); border-radius: 999px; cursor: pointer; transition: background 0.15s; }
+    .toggle-switch .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 4px; top: 50%; transform: translateY(-50%); background: var(--ink); border-radius: 50%; transition: left 0.15s; }
+    .toggle-switch input:checked + .slider { background: var(--coral); }
+    .toggle-switch input:checked + .slider::before { left: calc(100% - 20px); background: var(--cream); }
     .text-input {
       font-family: inherit; font-size: 16px; padding: 12px 14px;
       background: var(--cream); border: var(--border); border-radius: 12px; color: var(--ink);
@@ -761,6 +770,9 @@
 
     // ---------- Nav ----------
     function goTo(v, extra = {}) {
+      if ((v === 'latest' || v === 'channels') && isProfileLocked(activeProfile())) {
+        v = 'locked';
+      }
       state.currentView = v;
       Object.assign(state, extra);
       if (v === 'picker') { state.currentChannel = null; state.randomPool = null; }
@@ -960,7 +972,20 @@
         case 'channels':      return state.currentChannel ? renderChannelDetail() : renderChannels();
         case 'settings':      return renderSettings();
         case 'profileEditor': return renderProfileEditor();
+        case 'locked':        return renderLocked();
       }
+    }
+
+    function renderLocked() {
+      const p = activeProfile();
+      view.innerHTML = `
+        <div style="text-align: center; padding: 48px 24px;">
+          <div style="font-size: 72px; margin-bottom: 20px;">${esc(p?.emoji || '⏰')}</div>
+          <h1 style="font-family: 'Fraunces', serif; font-weight: 900; font-size: 30px; letter-spacing: -0.02em; margin-bottom: 12px;">Time's up!</h1>
+          <p style="color: var(--ink-soft); font-size: 15px; max-width: 280px; margin: 0 auto 32px;">You've reached today's video limit for <strong>${esc(p?.name || 'this profile')}</strong>. Come back tomorrow!</p>
+          ${store.profiles.length > 1 ? `<button class="btn coral" id="lockSwitchBtn">Switch profile</button>` : ''}
+        </div>`;
+      $('#lockSwitchBtn')?.addEventListener('click', () => goTo('picker'));
     }
 
     // ---------- Views ----------
@@ -1578,6 +1603,19 @@
         </div>
 
         <div class="settings-section">
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <strong>Lock when over red limit</strong>
+              <span class="view-sub" style="display: block; margin-top: 4px;">Disable video access once today's red limit is reached.</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="profLockOnAlert" ${p.lockOnAlert ? 'checked' : ''}>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
           <button class="btn danger full" id="deleteProfile">Delete this profile</button>
         </div>`;
 
@@ -1603,6 +1641,14 @@
       };
       bindMinutesInput('profWarn',  'warnMinutes',  DEFAULT_WARN_MIN);
       bindMinutesInput('profAlert', 'alertMinutes', DEFAULT_ALERT_MIN);
+
+      const lockEl = $('#profLockOnAlert');
+      if (lockEl) {
+        lockEl.addEventListener('change', (e) => {
+          p.lockOnAlert = e.target.checked;
+          saveStore();
+        });
+      }
 
       view.querySelectorAll('[data-emoji]').forEach(b => b.addEventListener('click', () => {
         p.emoji = b.dataset.emoji;
@@ -1943,6 +1989,13 @@
       try { localStorage.removeItem(TIMER_PREFIX + profileId); } catch {}
     }
 
+    function isProfileLocked(p) {
+      if (!p || !p.lockOnAlert) return false;
+      const data = loadTimerData(p.id);
+      const seconds = (data && data.date === todayKey()) ? data.seconds : 0;
+      return seconds >= (p.alertMinutes ?? DEFAULT_ALERT_MIN) * 60;
+    }
+
     function displayTimerSeconds(seconds) {
       const textEl = $('#timerText');
       const pill = $('#timerPill');
@@ -1982,6 +2035,13 @@
       }
 
       displayTimerSeconds(data.seconds);
+
+      if (shouldCount && p.lockOnAlert) {
+        const alertSec = (p.alertMinutes ?? DEFAULT_ALERT_MIN) * 60;
+        if (data.seconds >= alertSec) {
+          goTo('locked');
+        }
+      }
     }
 
     refreshTimerDisplay();
